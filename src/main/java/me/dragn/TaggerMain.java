@@ -1,9 +1,7 @@
 package me.dragn;
 
-import org.apache.commons.lang3.tuple.Pair;
-
+import java.io.File;
 import java.io.StringReader;
-import java.util.List;
 
 /**
  * Created by dsabe_000 on 8/14/2014.
@@ -11,17 +9,13 @@ import java.util.List;
 public class TaggerMain {
 
     public static void main(String... args) {
-        CatalogFetcher cf = new YandexCatalogueFetcher();
+        CatalogFetcher cf = new YandexCatalogueFetcher(new File("./catalogue.out"));
 
-        String str =
-                "Социальные сети|http://yaca.yandex.ru/yca/cat/Entertainment/community/\n" +
-                        "Эзотерика|http://yaca.yandex.ru/yca/cat/Entertainment/Occultism/\n" +
-                        "Эротика|http://yaca.yandex.ru/yca/cat/Entertainment/Erotica/";
-
+        String str = "" +
+                "Фото и видео|http://yaca.yandex.ru/yca/cat/Culture/Photography/";
         cf.read(new StringReader(str));
 
-        for (Pair<String, List<String>> pair : cf.fetch()) {
-            System.out.println(pair.getLeft() + pair.getRight());
-        }
+        //cf.readFile(new File("conf/yaca.catalog"));
+        cf.fetch();
     }
 }

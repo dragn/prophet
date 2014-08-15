@@ -1,9 +1,11 @@
 package me.dragn;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.StringTokenizer;
 
@@ -15,9 +17,12 @@ public abstract class CatalogFetcher {
     /**
      * tag -> catalog URL map
      */
-    private List<Pair<String, String>> urls = new ArrayList<>();
+    private List<Pair<String, List<String>>> urls = new ArrayList<>();
 
-    public CatalogFetcher() {
+    private File output;
+
+    public CatalogFetcher(File output) {
+        this.output = output;
     }
 
     public void readFile(File file) {
@@ -34,7 +39,7 @@ public abstract class CatalogFetcher {
             while ((line = reader.readLine()) != null) {
                 StringTokenizer st = new StringTokenizer(line, "|");
                 if (st.countTokens() < 2) throw new IllegalArgumentException("Invalid file format: " + line);
-                urls.add(Pair.of(st.nextToken(), st.nextToken()));
+                urls.add(Pair.of(st.nextToken(), Arrays.asList(st.nextToken().split(","))));
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -44,12 +49,20 @@ public abstract class CatalogFetcher {
     /**
      * Returns 'tag' -> 'site url' list
      */
-    public List<Pair<String, List<String>>> fetch() {
-        List<Pair<String, List<String>>> list = new ArrayList<>();
-        for (Pair<String, String> pair : urls) {
-            list.add(Pair.of(pair.getLeft(), fetchSites(pair.getRight())));
+    public void fetch() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(output))) {
+            for (Pair<String, List<String>> pair : urls) {
+                writer.write(pair.getLeft());
+                writer.write("|");
+                for (String url : pair.getRight()) {
+                    writer.write(StringUtils.join(fetchSites(url), ","));
+                    writer.write(",");
+                }
+                writer.write("\n");
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        return list;
     }
 
     protected abstract List<String> fetchSites(String url);

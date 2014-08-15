@@ -4,8 +4,11 @@ import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 
+import java.io.File;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,6 +16,11 @@ import java.util.List;
  * Created by dsabe_000 on 8/14/2014.
  */
 public class YandexCatalogueFetcher extends CatalogFetcher {
+
+    public YandexCatalogueFetcher(File output) {
+        super(output);
+    }
+
     @Override
     protected List<String> fetchSites(String baseUrl) {
         List<String> result = new ArrayList<>();
@@ -20,13 +28,24 @@ public class YandexCatalogueFetcher extends CatalogFetcher {
         String url = baseUrl;
         System.out.println("Parsing " + baseUrl);
         try {
-            while (page < 10) {
-                System.out.println("Page " + (page + 1));
-                Document doc = Jsoup.connect(url).get();
-                for (Element element : doc.select("a.b-result__name")) {
+            while (page < 500) {
+                System.out.println("Page " + (page + 1) + ": " + url);
+                Document doc;
+                try {
+                    doc = Jsoup.connect(url).get();
+                } catch (SocketTimeoutException ex) {
+                    continue;
+                }
+                Elements links = doc.select("a.b-result__name");
+                if (links.isEmpty()) break;
+                for (Element element : links) {
                     result.add(element.attr("href"));
                 }
-                url += baseUrl + (++page) + ".html";
+                if (baseUrl.contains("?")) {
+                    url = baseUrl.replace("?", "/" + (++page) + ".html?");
+                } else {
+                    url = baseUrl + (++page) + ".html";
+                }
             }
         } catch (HttpStatusException ex) {
             // ...
