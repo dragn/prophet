@@ -6,10 +6,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.*;
@@ -25,11 +22,14 @@ import java.util.stream.Collectors;
 public class KeywordsFetcher {
 
     // 'tag' -> keywords map
-    private Map<String, List<String>> keywords;
+    private Map<String, Set<Word>> keywords = new HashMap<>();
 
     private List<Pair<String, List<String>>> sites = new ArrayList<>();
 
     private Pattern wordPattern = Pattern.compile("[a-zA-Zа-яА-Я]{4,}");
+
+    private static final double LIMIT_FREQUENCY = 0.001;
+    private static final int MAX_SITE_COUNT = 100;
 
     public KeywordsFetcher() {
     }
@@ -58,8 +58,60 @@ public class KeywordsFetcher {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
 
-        fetchKeywords(sites.get(0).getLeft(), sites.get(0).getRight());
+    public void fetchKeywords() {
+        sites.parallelStream().forEach(site -> {
+            String tag = site.getKey();
+
+            SortedSet<Word> words = fetchKeywords(site.getValue()).headSet(new Word("", LIMIT_FREQUENCY));
+            keywords.put(tag, words);
+
+            System.out.println(tag);
+
+            for (Word word : words) {
+                System.out.println("  " + word.string() + ": " + word.count());
+            }
+        });
+    }
+
+    public void cleanOut() {
+        System.out.println("*** Clean out started");
+        Map<String, Set<Word>> newKeywords = new HashMap<>();
+        for (Map.Entry<String, Set<Word>> entry : keywords.entrySet()) {
+            String tag = entry.getKey();
+            System.out.println("Tag: " + tag);
+            Set<Word> newSet = new TreeSet<>();
+            entry.getValue().parallelStream().forEach(word -> {
+                boolean found = false;
+                for (Map.Entry<String, Set<Word>> e : keywords.entrySet())
+                    if (!e.getKey().equals(tag)) {
+                        for (Word word1 : e.getValue()) { // may be optimized by using proper data structure
+                            if (word.equals(word1)) {
+                                found = true;
+                                break;
+                            }
+                        }
+                    }
+                if (!found) newSet.add(word);
+            });
+            newKeywords.put(tag, newSet);
+            System.out.println(entry.getValue().size() + " reduced to " + newSet.size());
+        }
+        keywords = newKeywords;
+    }
+
+    public void storeKeywords(File file) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
+            for (Map.Entry<String, Set<Word>> entry : keywords.entrySet()) {
+                writer.write(entry.getKey() + " " + entry.getValue().size() + "\n");
+                for (Word word : entry.getValue()) {
+                    writer.write(" " + word.string() + " " + word.count() + "\n");
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static class Word implements Comparable<Word> {
@@ -84,15 +136,28 @@ public class KeywordsFetcher {
         public int compareTo(Word o) {
             return - this.count.compareTo(o.count);
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            Word word = (Word) o;
+            return !(string != null ? !string.equals(word.string) : word.string != null);
+        }
+
+        @Override
+        public int hashCode() {
+            return string != null ? string.hashCode() : 0;
+        }
     }
 
-    private void fetchKeywords(String tag, List<String> sites) {
+    private SortedSet<Word> fetchKeywords(List<String> sites) {
 
         // number of occurrences of words in sites' texts.
         Map<String, MutableInt> words = new HashMap<>();
 
         int wordCount = 0;
-        for (int i = 0; i < sites.size() && i < 40; i++) {
+        for (int i = 0; i < sites.size() && i < MAX_SITE_COUNT; i++) {
             System.out.println("Next site: " + sites.get(i));
             Document doc = getWithRetry(sites.get(i));
             if (doc == null) continue;
@@ -116,13 +181,7 @@ public class KeywordsFetcher {
                 .map(entry -> new Word(entry.getKey(), (double) entry.getValue().getValue() / total))
                 .collect(Collectors.toCollection(() -> new TreeSet<>()));
 
-        System.out.println(tag);
-
-        Iterator<Word> it = sorted.iterator();
-        for (int index = 0; index < 25 && it.hasNext(); index++) {
-            Word word = it.next();
-            System.out.println("  " + word.string() + ": " + word.count());
-        }
+        return sorted;
     }
 
     private Document getWithRetry(String url) {

@@ -12,6 +12,9 @@ public class TaggerMain {
         KeywordsFetcher kf = new KeywordsFetcher();
 
         kf.readCatalogue(new File("./catalogue2.out"));
+        kf.fetchKeywords();
+        kf.cleanOut();
+        kf.storeKeywords(new File("./keywords.out"));
     }
 
     public static void fetchYaca() {
