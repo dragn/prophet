@@ -10,6 +10,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -61,12 +62,12 @@ public class KeywordsFetcher {
         fetchKeywords(sites.get(0).getLeft(), sites.get(0).getRight());
     }
 
-    private static class Word implements Comparable<Word> {
+    public static class Word implements Comparable<Word> {
 
         private String string;
-        private Integer count = 0;
+        private Double count = 0.;
 
-        public Word(String string, int count) {
+        public Word(String string, double count) {
             this.string = string;
             this.count = count;
         }
@@ -75,7 +76,7 @@ public class KeywordsFetcher {
             return string;
         }
 
-        public Integer count() {
+        public Double count() {
             return count;
         }
 
@@ -90,7 +91,7 @@ public class KeywordsFetcher {
         // number of occurrences of words in sites' texts.
         Map<String, MutableInt> words = new HashMap<>();
 
-        int total = 0;
+        int wordCount = 0;
         for (int i = 0; i < sites.size() && i < 40; i++) {
             System.out.println("Next site: " + sites.get(i));
             Document doc = getWithRetry(sites.get(i));
@@ -105,13 +106,14 @@ public class KeywordsFetcher {
                 } else {
                     count.increment();
                 }
-                total++;
+                wordCount++;
             }
-            System.out.println("Words now: " + words.size() + ", total processed: " + total);
+            System.out.println("Words now: " + words.size() + ", total processed: " + wordCount);
         }
 
+        final int total = wordCount;
         SortedSet<Word> sorted = words.entrySet().parallelStream()
-                .map(entry -> new Word(entry.getKey(), entry.getValue().getValue()))
+                .map(entry -> new Word(entry.getKey(), (double) entry.getValue().getValue() / total))
                 .collect(Collectors.toCollection(() -> new TreeSet<>()));
 
         System.out.println(tag);
@@ -119,17 +121,19 @@ public class KeywordsFetcher {
         Iterator<Word> it = sorted.iterator();
         for (int index = 0; index < 25 && it.hasNext(); index++) {
             Word word = it.next();
-            System.out.println("  " + word.string() + ": " + ((double) word.count() / total));
+            System.out.println("  " + word.string() + ": " + word.count());
         }
     }
 
     private Document getWithRetry(String url) {
         Document doc = null;
-        while (doc == null) {
+        int retries = 0;
+        while (doc == null && retries < 5) {
             try {
                 doc = Jsoup.connect(url).get();
-            } catch (SocketTimeoutException ex) {
+            } catch (SocketTimeoutException | ConnectException ex) {
                 // .. retry
+                retries++;
             } catch (IOException e) {
                 e.printStackTrace();
                 break;
