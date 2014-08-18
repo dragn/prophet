@@ -29,7 +29,8 @@ public class KeywordsFetcher {
     private Pattern wordPattern = Pattern.compile("[a-zA-Zа-яА-Я]{4,}");
 
     private static final double LIMIT_FREQUENCY = 0.001;
-    private static final int MAX_SITE_COUNT = 100;
+    private static final int MAX_SITE_COUNT = 200;
+    private static final int MAX_WORD_MULTITAGS = 2;
 
     public KeywordsFetcher() {
     }
@@ -83,17 +84,17 @@ public class KeywordsFetcher {
             System.out.println("Tag: " + tag);
             Set<Word> newSet = new TreeSet<>();
             entry.getValue().parallelStream().forEach(word -> {
-                boolean found = false;
+                int found = 0;
                 for (Map.Entry<String, Set<Word>> e : keywords.entrySet())
                     if (!e.getKey().equals(tag)) {
                         for (Word word1 : e.getValue()) { // may be optimized by using proper data structure
                             if (word.equals(word1)) {
-                                found = true;
-                                break;
+                                found++;
+                                if (found == MAX_WORD_MULTITAGS) break;
                             }
                         }
                     }
-                if (!found) newSet.add(word);
+                if (found < MAX_WORD_MULTITAGS) newSet.add(word);
             });
             newKeywords.put(tag, newSet);
             System.out.println(entry.getValue().size() + " reduced to " + newSet.size());

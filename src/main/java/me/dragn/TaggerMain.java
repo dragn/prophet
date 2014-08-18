@@ -9,8 +9,12 @@ import java.io.StringReader;
 public class TaggerMain {
 
     public static void main(String... args) {
-        KeywordsFetcher kf = new KeywordsFetcher();
+        fetchKeywords();
+        //fetchYaca();
+    }
 
+    public static void fetchKeywords() {
+        KeywordsFetcher kf = new KeywordsFetcher();
         kf.readCatalogue(new File("./catalogue2.out"));
         kf.fetchKeywords();
         kf.cleanOut();
@@ -20,7 +24,7 @@ public class TaggerMain {
     public static void fetchYaca() {
         CatalogFetcher cf = new YandexCatalogueFetcher(new File("./catalogue.out"));
 
-        String str = "Музыка|http://yaca.yandex.ru/yca/cat/Culture/Music/Mp3/,http://yaca.yandex.ru/yca/cat/Culture/Music/General/,http://yaca.yandex.ru/yca/cat/Culture/Music/Radio/";
+        String str = "Книги и журналы|http://yaca.yandex.ru/yca/cat/Culture/Literature/";
         cf.read(new StringReader(str));
 
         //cf.readFile(new File("conf/yaca.catalog"));
