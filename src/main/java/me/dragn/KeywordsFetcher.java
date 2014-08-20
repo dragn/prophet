@@ -1,14 +1,11 @@
 package me.dragn;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 
 import java.io.*;
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,11 +23,11 @@ public class KeywordsFetcher {
 
     private List<Pair<String, List<String>>> sites = new ArrayList<>();
 
-    private Pattern wordPattern = Pattern.compile("[a-zA-Zа-яА-Я]{4,}");
+    public static Pattern wordPattern = Pattern.compile("[a-zA-Zа-яА-Я]{4,}");
 
-    private static final double LIMIT_FREQUENCY = 0.001;
-    private static final int MAX_SITE_COUNT = 200;
-    private static final int MAX_WORD_MULTITAGS = 2;
+    private static final double LIMIT_FREQUENCY = 0.0008;
+    private static final int MAX_SITE_COUNT = 400;
+    private static final int MAX_WORD_MULTITAGS = 3;
 
     public KeywordsFetcher() {
     }
@@ -71,7 +68,7 @@ public class KeywordsFetcher {
             System.out.println(tag);
 
             for (Word word : words) {
-                System.out.println("  " + word.string() + ": " + word.count());
+                System.out.println("  " + word.string() + ": " + word.frequency());
             }
         });
     }
@@ -105,9 +102,9 @@ public class KeywordsFetcher {
     public void storeKeywords(File file) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
             for (Map.Entry<String, Set<Word>> entry : keywords.entrySet()) {
-                writer.write(entry.getKey() + " " + entry.getValue().size() + "\n");
+                writer.write(entry.getKey() + ": " + entry.getValue().size() + "\n");
                 for (Word word : entry.getValue()) {
-                    writer.write(" " + word.string() + " " + word.count() + "\n");
+                    writer.write(" " + word.string() + " " + word.frequency() + "\n");
                 }
             }
         } catch (IOException e) {
@@ -115,90 +112,52 @@ public class KeywordsFetcher {
         }
     }
 
-    public static class Word implements Comparable<Word> {
-
-        private String string;
-        private Double count = 0.;
-
-        public Word(String string, double count) {
-            this.string = string;
-            this.count = count;
-        }
-
-        public String string() {
-            return string;
-        }
-
-        public Double count() {
-            return count;
-        }
-
-        @Override
-        public int compareTo(Word o) {
-            return - this.count.compareTo(o.count);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            Word word = (Word) o;
-            return !(string != null ? !string.equals(word.string) : word.string != null);
-        }
-
-        @Override
-        public int hashCode() {
-            return string != null ? string.hashCode() : 0;
-        }
-    }
-
     private SortedSet<Word> fetchKeywords(List<String> sites) {
 
         // number of occurrences of words in sites' texts.
-        Map<String, MutableInt> words = new HashMap<>();
+        Map<String, MutableDouble> words = new HashMap<>();
 
-        int wordCount = 0;
-        for (int i = 0; i < sites.size() && i < MAX_SITE_COUNT; i++) {
-            System.out.println("Next site: " + sites.get(i));
-            Document doc = getWithRetry(sites.get(i));
-            if (doc == null) continue;
+        Collections.shuffle(sites);
 
-            Matcher matcher = wordPattern.matcher(doc.text());
-            while (matcher.find()) {
-                String str = matcher.group().toLowerCase();
-                MutableInt count = words.get(str);
-                if (count == null) {
-                    words.put(str, new MutableInt(1));
-                } else {
-                    count.increment();
+        int siteCount = Math.min(sites.size(), MAX_SITE_COUNT);
+
+        for (int i = 0; i < siteCount; i++) {
+
+            Crawler c = new Crawler(sites.get(i), 3, 10);
+
+            final Map<String, MutableInt> siteWords = new HashMap<>();
+            final MutableInt totalWords = new MutableInt(0);
+
+            c.crawl(doc -> {
+                System.out.println(doc.location());
+
+                Matcher matcher = wordPattern.matcher(doc.text());
+                while (matcher.find()) {
+                    String str = matcher.group().toLowerCase();
+                    MutableInt count = siteWords.get(str);
+                    if (count == null) {
+                        siteWords.put(str, new MutableInt(1));
+                    } else {
+                        count.increment();
+                    }
+                    totalWords.increment();
                 }
-                wordCount++;
-            }
-            System.out.println("Words now: " + words.size() + ", total processed: " + wordCount);
+            });
+
+            siteWords.forEach((word, count) -> {
+                MutableDouble d = words.get(word);
+                double add = count.doubleValue() / totalWords.doubleValue() / siteCount;
+                if (d != null) d.add(add);
+                else words.put(word, new MutableDouble(add));
+            });
+
+            System.out.println("Site " + i + "/" + siteCount);
         }
 
-        final int total = wordCount;
         SortedSet<Word> sorted = words.entrySet().parallelStream()
-                .map(entry -> new Word(entry.getKey(), (double) entry.getValue().getValue() / total))
+                .map(entry -> new Word(entry.getKey(), entry.getValue().toDouble()))
                 .collect(Collectors.toCollection(() -> new TreeSet<>()));
 
         return sorted;
-    }
-
-    private Document getWithRetry(String url) {
-        Document doc = null;
-        int retries = 0;
-        while (doc == null && retries < 5) {
-            try {
-                doc = Jsoup.connect(url).get();
-            } catch (SocketTimeoutException | ConnectException ex) {
-                // .. retry
-                retries++;
-            } catch (IOException e) {
-                e.printStackTrace();
-                break;
-            }
-        }
-        return doc;
     }
 }

@@ -11,6 +11,10 @@ public class TaggerMain {
     public static void main(String... args) {
         fetchKeywords();
         //fetchYaca();
+
+//        Tagger tagger = new Tagger();
+//        tagger.readKeywords(new File("./keywords.out"));
+//        tagger.tagSite("http://www.penreader.com/windows-mobile-software/ru/Can_t_Stop_Solitaires_Collection.html");
     }
 
     public static void fetchKeywords() {
