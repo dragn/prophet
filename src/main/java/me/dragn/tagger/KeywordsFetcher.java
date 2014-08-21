@@ -5,7 +5,6 @@ import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -28,7 +27,7 @@ public class KeywordsFetcher {
 
     public static Pattern wordPattern = Pattern.compile("[a-zA-Zа-яА-Я]{4,}");
 
-    private static final double LIMIT_FREQUENCY = 0.001;
+    private static final double LIMIT_WEIGHT = 0.001;
     private static final int MAX_SITE_COUNT = 400;
     private static final int MAX_WORD_MULTITAGS = 1;
 
@@ -40,9 +39,10 @@ public class KeywordsFetcher {
     }
 
     public void fetchKeywords() {
-        catalogue.forEach((tag, sites) -> {
+        catalogue.tags().parallelStream().forEach(tag -> {
+            Collection<String> sites = catalogue.byTag(tag);
             Collection<Keyword> words =
-                    fetchKeywords(sites).stream().filter(word -> word.weight() > LIMIT_FREQUENCY)
+                    fetchKeywords(sites).stream().filter(word -> word.weight() > LIMIT_WEIGHT)
                             .collect(Collectors.toList());
             keywords.addAll(tag, words);
 
@@ -84,16 +84,19 @@ public class KeywordsFetcher {
 
         int siteCount = Math.min(list.size(), MAX_SITE_COUNT);
 
-        for (int i = 0; i < siteCount; i++) {
-
-            Crawler c = new Crawler(list.get(i), 2, 5);
+        for (int i = 0; i < list.size(); i++) {
+            String site = list.get(i);
+            Crawler c = new Crawler(site, 2, 10);
 
             final Map<String, MutableInt> siteWords = new HashMap<>();
             final MutableInt totalWords = new MutableInt(0);
 
             c.crawl(doc -> {
                 System.out.println(doc.location());
-                countWords(doc, siteWords, totalWords);
+                countWords(doc.text(), siteWords, totalWords, 1);
+                countWords(doc.select("a").text(), siteWords, totalWords, 2);
+                countWords(doc.select("h3,h4").text(), siteWords, totalWords, 2);
+                countWords(doc.select("h1,h2").text(), siteWords, totalWords, 3);
             });
 
             siteWords.forEach((word, count) -> {
@@ -103,20 +106,20 @@ public class KeywordsFetcher {
                 else words.put(word, new MutableDouble(add));
             });
 
-            System.out.println("Site " + i + "/" + siteCount);
+            System.out.format("Site #%d/%d", i, siteCount);
         }
 
         return words.entrySet().stream().map(entry -> new Keyword(entry.getKey(), entry.getValue().toDouble()))
                 .collect(Collectors.toList());
     }
 
-    private void countWords(Document doc, Map<String, MutableInt> siteWords, MutableInt totalWords) {
-        Matcher matcher = wordPattern.matcher(doc.text());
+    private void countWords(String text, Map<String, MutableInt> siteWords, MutableInt totalWords, int weight) {
+        Matcher matcher = wordPattern.matcher(text);
         while (matcher.find()) {
             String str = matcher.group().toLowerCase();
             MutableInt count = siteWords.get(str);
             if (count == null) {
-                siteWords.put(str, new MutableInt(1));
+                siteWords.put(str, new MutableInt(weight));
             } else {
                 count.increment();
             }
@@ -126,7 +129,7 @@ public class KeywordsFetcher {
 
     public static void main(String[] args) throws IOException {
         KeywordsFetcher kf = new KeywordsFetcher();
-        kf.readCatalogue("./catalogue.out");
+        kf.readCatalogue("./catalogue2.out");
         kf.fetchKeywords();
         kf.cleanOut();
         kf.storeKeywords("./keywords.out");

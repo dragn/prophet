@@ -35,6 +35,10 @@ public class Catalogue {
         return catalogue;
     }
 
+    public Collection<String> tags() {
+        return sites.keySet();
+    }
+
     public Collection<String> byTag(String tag) {
         Collection<String> sites = this.sites.get(tag);
         if (sites == null) {

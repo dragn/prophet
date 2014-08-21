@@ -46,6 +46,10 @@ public class Crawler {
     public void crawl(Consumer<Document> consumer) {
         history = new HashSet<>();
 
+        if (!baseUrl.startsWith("http://") && !baseUrl.startsWith("https://")) {
+            baseUrl = "http://" + baseUrl;
+        }
+
         Document doc = getWithRetry(baseUrl);
         if (doc == null) return;
         baseUrl = doc.location();
