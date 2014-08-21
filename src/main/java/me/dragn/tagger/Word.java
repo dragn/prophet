@@ -1,4 +1,4 @@
-package me.dragn;
+package me.dragn.tagger;
 
 /**
 * User: dsabelnikov

@@ -1,12 +1,12 @@
-package me.dragn;
+package me.dragn.tagger;
 
+import me.dragn.tagger.data.Catalogue;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.ArrayList;
@@ -16,10 +16,6 @@ import java.util.List;
  * Created by dsabe_000 on 8/14/2014.
  */
 public class YandexCatalogueFetcher extends CatalogFetcher {
-
-    public YandexCatalogueFetcher(File output) {
-        super(output);
-    }
 
     @Override
     protected List<String> fetchSites(String baseUrl) {
@@ -54,5 +50,12 @@ public class YandexCatalogueFetcher extends CatalogFetcher {
         }
         System.out.println("Parsed " + page + " pages");
         return result;
+    }
+
+    public static void main(String[] args) throws IOException {
+        CatalogFetcher cf = new YandexCatalogueFetcher();
+        cf.readFile("conf/yaca.catalog");
+        Catalogue cat = cf.fetch();
+        cat.toFile("./catalogue.out");
     }
 }
