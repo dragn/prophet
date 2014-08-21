@@ -56,8 +56,8 @@ public class Tagger {
         Map<String, MutableInt> words = new HashMap<>();
         final MutableInt wordCount = new MutableInt(0);
 
-        new Crawler(url, 4).crawl(doc -> {
-            System.out.println("Next url: " + doc.location());
+        new Crawler(url, 4, 50).crawl(doc -> {
+            System.out.println(doc.location());
 
             Matcher matcher = KeywordsFetcher.wordPattern.matcher(doc.text());
             while (matcher.find()) {

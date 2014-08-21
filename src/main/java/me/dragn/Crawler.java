@@ -4,7 +4,6 @@ import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
 import java.util.HashSet;
@@ -20,6 +19,10 @@ public class Crawler {
 
     private String baseUrl;
     private Set<String> history = new HashSet<>();
+
+    private final int REQUEST_TIMEOUT = 30 * 1000; // 30sec
+    private final String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+            "Chrome/36.0.1985.18 Safari/537.36";
 
     private int maxDepth;
     private int limit = 40;
@@ -37,6 +40,11 @@ public class Crawler {
 
     public void crawl(Consumer<Document> consumer) {
         history = new HashSet<>();
+
+        Document doc = getWithRetry(baseUrl);
+        if (doc == null) return;
+        baseUrl = doc.location();
+
         history.add(baseUrl);
         crawl(baseUrl, 0, consumer);
     }
@@ -82,14 +90,14 @@ public class Crawler {
         int retries = 0;
         while (doc == null && retries < 5) {
             try {
-                doc = Jsoup.connect(url).get();
+                doc = Jsoup.connect(url).timeout(REQUEST_TIMEOUT).userAgent(USER_AGENT).get();
             } catch (SocketTimeoutException | ConnectException ex) {
                 // .. retry
                 retries++;
             } catch (HttpStatusException ex) {
                 if (ex.getStatusCode() != 404 && ex.getStatusCode() != 403) ex.printStackTrace();
                 break;
-            } catch (IOException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
                 break;
             }
