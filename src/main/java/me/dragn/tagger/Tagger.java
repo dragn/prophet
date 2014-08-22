@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 
 /**
  * Naive Bayes Classifier
- *
+ * <p>
  * User: dsabelnikov
  * Date: 8/20/14
  * Time: 2:49 PM
@@ -51,6 +51,7 @@ public class Tagger {
         catalogue.forEach((tag, sites) -> {
             Map<String, MutableInt> wordCount = new HashMap<>();
             sites.forEach(site -> {
+                System.out.println(site);
                 bagOfWords(getSiteText(site)).forEach(word -> {
                     MutableInt count = wordCount.get(word);
                     if (count != null) {
@@ -69,6 +70,62 @@ public class Tagger {
                     .forEach(entry -> {
                         keywords.add(tag, new Keyword(entry.getKey(), entry.getValue().doubleValue() / siteCount));
                     });
+        });
+    }
+
+    /**
+     * Learn keywords by parsing sites from catalogue.
+     */
+    public void learnWithTfIdf(String catalogueFile) throws IOException {
+        Catalogue catalogue = Catalogue.fromFile(catalogueFile);
+
+        // Learn probabilities using bag-of-words model and Bernoulli events model.
+
+        // for every tag do
+        //   1. swipe all sites, store the words that appear in at least 5 sites.
+        //   2. for each word store, in how many documents it appears
+        //   3. put all encountered words in a big counter for "idf" calculation.
+        //   4. compute tf-idf = count(site|word) * log(count(site) / count(doc|word))
+
+        keywords = new Keywords();
+
+        Map<String, MutableInt> allWords = new HashMap<>();
+        Map<String, Map<String, MutableInt>> wordsByTag = new HashMap<>();
+
+        MutableInt totalSites = new MutableInt(0);
+
+        catalogue.forEach((tag, sites) -> {
+            Map<String, MutableInt> wordCount = new HashMap<>();
+            sites.parallelStream().forEach(site -> {
+                System.out.println(site);
+                bagOfWords(getSiteText(site)).forEach(word -> {
+                    MutableInt count = wordCount.get(word);
+                    MutableInt allCount = allWords.get(word);
+                    if (count != null) {
+                        count.increment();
+                    } else {
+                        count = new MutableInt(1);
+                        wordCount.put(word, count);
+                    }
+                    if (allCount != null) {
+                        allCount.increment();
+                    } else {
+                        allCount = new MutableInt(1);
+                        allWords.put(word, allCount);
+                    }
+                });
+                totalSites.increment();
+            });
+            wordsByTag.put(tag, wordCount);
+        });
+
+        wordsByTag.forEach((tag, words) -> {
+            words.forEach((word, count) -> {
+                if (allWords.containsKey(word)) {
+                    double tfidf = count.doubleValue() * Math.log(totalSites.doubleValue() / allWords.get(word).doubleValue());
+                    keywords.add(tag, new Keyword(word, tfidf));
+                }
+            });
         });
     }
 
@@ -144,7 +201,7 @@ public class Tagger {
         });
 
         // return a tag with max probability
-        return probByTag.entrySet().stream().max((e1, e2) -> - e1.getValue().compareTo(e2.getValue())).get().getKey();
+        return probByTag.entrySet().stream().max((e1, e2) -> -e1.getValue().compareTo(e2.getValue())).get().getKey();
     }
 
     private Double countScores(Collection<Keyword> words, Map<String, Keyword> keywords) {

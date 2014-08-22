@@ -14,9 +14,9 @@ public class TaggerMain {
 
     public static void main(String... args) throws IOException {
         Tagger tagger = new Tagger();
-        tagger.fromFile("./keywords.out");
+        tagger.learn("./learn-data/mini-catalogue.out");
         tagger.test(Catalogue.fromFile("test-data/mini-catalogue.out"));
-        //tagger.learn("./learn-data/mini-catalogue.out");
+
         //tagger.toFile("./keywords.out");
     }
 
