@@ -23,8 +23,8 @@ public class Crawler {
     private String baseUrl;
     private Set<String> history = new HashSet<>();
 
-    private final int REQUEST_TIMEOUT = 30 * 1000; // 30sec
-    private final String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
+    private final static int REQUEST_TIMEOUT = 30 * 1000; // 30sec
+    private final static String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/36.0.1985.18 Safari/537.36";
 
     private int maxDepth;
@@ -76,7 +76,6 @@ public class Crawler {
                     return link != null && !history.contains(link);
                 }).limit(limit).forEach(a -> {
                     String link = getLink(url, a);
-                    System.out.println(link);
                     history.add(link);
                     queue.add(new Page(link, depth));
                 });
@@ -117,12 +116,16 @@ public class Crawler {
         return link;
     }
 
-    private Document getWithRetry(String url) {
+    public static Document getWithRetry(String url) {
+        return getWithRetry(url, REQUEST_TIMEOUT, 5);
+    }
+
+    public static Document getWithRetry(String url, int requestTimeout, int maxRetries) {
         Document doc = null;
         int retries = 0;
-        while (doc == null && retries < 5) {
+        while (doc == null && retries < maxRetries) {
             try {
-                doc = Jsoup.connect(url).timeout(REQUEST_TIMEOUT).userAgent(USER_AGENT).get();
+                doc = Jsoup.connect(url).timeout(requestTimeout).userAgent(USER_AGENT).get();
             } catch (SocketTimeoutException | ConnectException ex) {
                 // .. retry
                 retries++;

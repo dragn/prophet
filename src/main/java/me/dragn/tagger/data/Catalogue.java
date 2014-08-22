@@ -5,7 +5,6 @@ import org.apache.commons.lang3.StringUtils;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.function.BiConsumer;
@@ -24,9 +23,9 @@ public class Catalogue {
      */
     private Map<String, Collection<String>> sites = new HashMap<>();
 
-    public static Catalogue fromFile(Path file) throws IOException {
+    public static Catalogue fromFile(String file) throws IOException {
         Catalogue catalogue = new Catalogue();
-        Files.lines(file).forEach(line -> {
+        Files.lines(Paths.get(file)).forEach(line -> {
             StringTokenizer st = new StringTokenizer(line, "|");
             if (st.countTokens() < 2) throw new IllegalArgumentException("Illegal file format");
 
@@ -71,5 +70,9 @@ public class Catalogue {
 
     public void forEach(BiConsumer<String, Collection<String>> cons) {
         sites.forEach(cons);
+    }
+
+    public void add(String tag, String site) {
+        byTag(tag).add(site);
     }
 }

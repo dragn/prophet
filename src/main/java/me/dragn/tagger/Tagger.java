@@ -1,16 +1,20 @@
 package me.dragn.tagger;
 
+import me.dragn.tagger.data.Catalogue;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
+import org.jsoup.nodes.Document;
 
-import java.io.File;
+import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.stream.Collectors;
 
 /**
+ * Naive Bayes Classifier
+ *
  * User: dsabelnikov
  * Date: 8/20/14
  * Time: 2:49 PM
@@ -19,59 +23,138 @@ public class Tagger {
 
     private Keywords keywords;
 
-    public void readKeywords(File file) {
+    /**
+     * Read already learned keywords from file.
+     */
+    public void fromFile(String file) {
         keywords = Keywords.fromFile(file);
     }
 
-    public List<String> tagSite(String url) {
-        List<String> tags = new ArrayList<>();
+    /**
+     * Learn keywords by parsing sites from catalogue.
+     */
+    public void learn(String catalogueFile) throws IOException {
+        Catalogue catalogue = Catalogue.fromFile(catalogueFile);
 
-        Map<String, MutableInt> words = new HashMap<>();
-        final MutableInt wordCount = new MutableInt(0);
+        // Learn probabilities using bag-of-words model and Bernoulli events model.
 
-        new Crawler(url, 3, 10).crawl(doc -> {
-            System.out.println(" -- " + doc.location());
+        // for every tag do
+        //   1. count in how many document given word occur:
+        //        for each document get the bag-of-words (without multiplicity)
+        //        for each word in the bag increment counter.
+        //   2. apply 1/count-of-sites to each word count.
+        //   got raw probabilities of encountering word x in tag. Basically done here!
+        // Future improvements: use tf-idf measure to remove common words.
 
-            Matcher matcher = KeywordsFetcher.wordPattern.matcher(doc.text());
-            while (matcher.find()) {
-                String str = matcher.group().toLowerCase();
-                MutableInt count = words.get(str);
-                if (count == null) {
-                    words.put(str, new MutableInt(1));
-                } else {
-                    count.increment();
-                }
-                wordCount.increment();
-            }
-            //System.out.println("Words now: " + words.size() + ", total processed: " + wordCount);
+        keywords = new Keywords();
+
+        catalogue.forEach((tag, sites) -> {
+            Map<String, MutableInt> wordCount = new HashMap<>();
+            sites.forEach(site -> {
+                bagOfWords(getSiteText(site)).forEach(word -> {
+                    MutableInt count = wordCount.get(word);
+                    if (count != null) {
+                        count.increment();
+                    } else {
+                        count = new MutableInt(1);
+                        wordCount.put(word, count);
+                    }
+                });
+            });
+            final int limit = 5;
+            final int siteCount = sites.size();
+            wordCount.entrySet()
+                    .stream()
+                    .filter(entry -> entry.getValue().intValue() > limit)
+                    .forEach(entry -> {
+                        keywords.add(tag, new Keyword(entry.getKey(), entry.getValue().doubleValue() / siteCount));
+                    });
         });
-
-        final int total = wordCount.intValue();
-        List<Word> wordList = words.entrySet().parallelStream()
-                .map(entry -> new Word(entry.getKey(), (double) entry.getValue().getValue() / total))
-                .collect(Collectors.toCollection(ArrayList::new));
-
-        Map<String, Double> scores = new HashMap<>();
-
-        keywords.forEach((word, list) -> {
-            Double score = countScores(wordList, list);
-            if (score > 0) {
-                scores.put(word, score);
-            }
-        });
-
-        scores.entrySet().stream().sorted((o1, o2) -> - o1.getValue().compareTo(o2.getValue()))
-                .forEach(entry -> System.out.println(entry.getKey() + ": " + entry.getValue()));
-
-        return tags;
     }
 
-    private Double countScores(Collection<Word> words, Map<String, Keyword> keywords) {
+    private String getSiteText(String site) {
+        Document doc = Crawler.getWithRetry(site, 5000, 3);
+        return doc != null ? doc.text() : "";
+    }
+
+    /**
+     * Learn keywords from dumped sites data.
+     */
+    public void learnFromDump(String dumpFile) {
+        // TODO
+    }
+
+    /**
+     * Store learned keywords to file.
+     */
+    public void toFile(String file) throws IOException {
+        if (keywords != null) keywords.toFile(file);
+    }
+
+    /**
+     * Test this tagger against provided catalogue.
+     * Tag each site in input, build own Catalogue, measure catalogue relevancy (e.g. F1 score).
+     */
+    public void test(Catalogue input) {
+        Catalogue myCatalogue = new Catalogue();
+        input.forEach((tag, sites) -> sites.stream().forEach(site -> {
+            String calc = tagSite(site);
+            System.out.printf("%s: %s\n", site, calc);
+            myCatalogue.add(calc, site);
+        }));
+        TaggerTest.score(input, myCatalogue);
+    }
+
+    private Collection<String> bagOfWords(String text) {
+        Set<String> words = new HashSet<>();
+        Matcher matcher = KeywordsFetcher.wordPattern.matcher(text);
+        while (matcher.find()) {
+            words.add(matcher.group().toLowerCase());
+        }
+        return words;
+    }
+
+    public String tagSite(String url) {
+        Collection<String> bag = bagOfWords(getSiteText(url));
+
+        // Probabilities for site to have a tag P(site|tag)
+        Map<String, MutableDouble> probByTag = new HashMap<>();
+
+        // Init probabilities to 1 (for multiplication)
+        keywords.tags().forEach(tag -> probByTag.put(tag, new MutableDouble(1)));
+
+        // Count probabilities for each tag
+        keywords.tags().forEach(tag -> {
+
+            // For each keyword: if word is in document, multiply by P(word|tag) (keyword.weight())
+            // if word is not in document, multiply by (1 - P(word|tag))
+            Map<String, Keyword> kws = keywords.byTag(tag);
+            Set<String> inDocument = bag.stream().filter(kws::containsKey).collect(Collectors.toCollection(HashSet::new));
+
+            kws.forEach((word, keyword) -> {
+                MutableDouble prob = probByTag.get(tag);
+                if (inDocument.contains(word)) {
+                    // keyword is in document
+                    prob.setValue(prob.doubleValue() * keyword.weight());
+                } else {
+                    // keyword is not in document
+                    prob.setValue(prob.doubleValue() * (1 - keyword.weight()));
+                }
+            });
+        });
+
+        // return a tag with max probability
+        return probByTag.entrySet().stream().max((e1, e2) -> - e1.getValue().compareTo(e2.getValue())).get().getKey();
+    }
+
+    private Double countScores(Collection<Keyword> words, Map<String, Keyword> keywords) {
         MutableDouble score = new MutableDouble(0);
         words.forEach(word -> {
-            Double freq = keywords.get(word.string()).weight();
-            if (freq != null) {
-                score.add(word.frequency() / freq);
+            if (keywords.containsKey(word.word())) {
+                Double freq = keywords.get(word.word()).weight();
+                if (freq != null) {
+                    score.add(word.weight() * freq);
+                }
             }
         });
         return score.toDouble();

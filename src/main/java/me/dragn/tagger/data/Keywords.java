@@ -37,6 +37,10 @@ public class Keywords {
         return m;
     }
 
+    public Collection<String> tags() {
+        return map.keySet();
+    }
+
     public Stream<Map.Entry<String, Map<String, Keyword>>> stream() {
         return map.entrySet().stream();
     }
@@ -45,9 +49,9 @@ public class Keywords {
         map.forEach(cons);
     }
 
-    public static Keywords fromFile(File file) {
+    public static Keywords fromFile(String file) {
         Keywords keywords = new Keywords();
-        try (BufferedReader read = new BufferedReader(new FileReader(file))) {
+        try (BufferedReader read = Files.newBufferedReader(Paths.get(file))) {
             String line;
             Map<String, Keyword> words = new HashMap<>();
             String tag = null;

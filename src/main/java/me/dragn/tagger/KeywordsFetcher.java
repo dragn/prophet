@@ -7,7 +7,6 @@ import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -35,10 +34,10 @@ public class KeywordsFetcher {
     }
 
     public void readCatalogue(String file) throws IOException {
-        catalogue = Catalogue.fromFile(Paths.get(file));
+        catalogue = Catalogue.fromFile(file);
     }
 
-    public void fetchKeywords() {
+    public Keywords fetchKeywords() {
         catalogue.tags().parallelStream().forEach(tag -> {
             Collection<String> sites = catalogue.byTag(tag);
             Collection<Keyword> words =
@@ -49,6 +48,11 @@ public class KeywordsFetcher {
             System.out.println(tag);
             words.forEach(keyword -> System.out.format("  %s: %f\n", keyword.word(), keyword.weight()));
         });
+        return keywords;
+    }
+
+    public Keywords getKeywords() {
+        return this.keywords;
     }
 
     public void cleanOut() {
@@ -125,6 +129,19 @@ public class KeywordsFetcher {
             }
             totalWords.increment();
         }
+    }
+
+    public static void normalize(String inFile, String outFile) throws IOException {
+        Keywords keywords = Keywords.fromFile(inFile);
+        keywords.forEach((tag, words) -> {
+            Double sum = words.entrySet().stream().mapToDouble(entry -> entry.getValue().weight()).sum();
+            Collection<Keyword> newKeywords = words.entrySet().stream().map(
+                    entry -> new Keyword(entry.getKey(), entry.getValue().weight() / sum)
+            ).collect(Collectors.toCollection(ArrayList::new));
+            keywords.byTag(tag).clear();
+            keywords.addAll(tag, newKeywords);
+        });
+        keywords.toFile(outFile);
     }
 
     public static void main(String[] args) throws IOException {
