@@ -65,7 +65,11 @@ public class CNBTagger extends Tagger {
 
         // 3. Calculate weights
         notWordCount.forEach((tag, words) -> {
-
+            words.forEach((word, count) -> {
+                keywords.add(tag, new Keyword(word,
+                        Math.log((count.doubleValue() + 1) / (totalCount.get(tag).doubleValue() + words.size()))
+                ));
+            });
         });
 
         setKeywords(keywords);
@@ -86,12 +90,12 @@ public class CNBTagger extends Tagger {
             bagOfWords(text).forEach((word, count) -> {
                 Keyword kw = kws.get(word);
                 if (kw != null) {
-                    prob.subtract(kw.weight());
+                    prob.subtract(kw.weight() * count.doubleValue());
                 }
             });
             probByTag.put(tag, prob);
 
-            //System.out.println(tag + ": " + probByTag.get(tag));
+            System.out.println(tag + ": " + probByTag.get(tag));
         });
 
         // return a tag with max probability
