@@ -72,6 +72,10 @@ public class Catalogue {
         sites.forEach(cons);
     }
 
+    public void parallelForEach(BiConsumer<String, Collection<String>> cons) {
+        sites.entrySet().parallelStream().forEach(entry -> cons.accept(entry.getKey(), entry.getValue()));
+    }
+
     public void add(String tag, String site) {
         byTag(tag).add(site);
     }
