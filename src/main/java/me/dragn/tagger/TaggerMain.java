@@ -13,10 +13,10 @@ import java.nio.file.Paths;
 public class TaggerMain {
 
     public static void main(String... args) throws IOException {
-        Tagger tagger = new MNBTagger();
+        Tagger tagger = new TWCNBTagger();
         tagger.learn(Catalogue.fromFile("./learn-data/mini-catalogue.out"));
         //tagger.fromFile("./keywords.out");
-        //tagger.toFile("./keywords.out");
+        tagger.toFile("./keywords.out");
         tagger.test(Catalogue.fromFile("test-data/mini-catalogue.out"));
     }
 

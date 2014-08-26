@@ -79,4 +79,8 @@ public class Catalogue {
     public void add(String tag, String site) {
         byTag(tag).add(site);
     }
+
+    public Map<String, Collection<String>> map() {
+        return sites;
+    }
 }
