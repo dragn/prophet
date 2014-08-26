@@ -32,28 +32,32 @@ public class MNBTagger extends Tagger {
         Keywords keywords = new Keywords();
 
         catalogue.parallelForEach((tag, sites) -> {
-            // N(c,i)
+            // N(C,i) number of occurrences of word i in class C
             Map<String, MutableInt> wordCount = new ConcurrentHashMap<>();
 
-            // count(i)
-            final MutableInt totalWords = new MutableInt(0);
+            // N(C) total word occurrences in C
+            final MutableInt total = new MutableInt(0);
+
+            // alpha - number of words
+            final MutableInt alpha = new MutableInt(0);
 
             sites.forEach(site -> {
                 System.out.println(site);
                 bagOfWords(getSiteText(site)).forEach((word, count) -> {
                     addToMapValue(wordCount, word, count.intValue());
-                    totalWords.increment();
+                    total.add(count);
+                    alpha.increment();
                 });
             });
 
-            final int siteCount = sites.size(); // N(c)
-
             wordCount.forEach((word, count) -> {
-                keywords.add(tag, new Keyword(word, (double) (count.intValue() + 1) / (siteCount + totalWords.intValue())));
+                keywords.add(tag, new Keyword(word,
+                        Math.log((count.doubleValue() + 1) / (total.doubleValue() + alpha.doubleValue()))
+                ));
             });
         });
 
-        setKeywords(keywords);
+        setKeywords(normalize(keywords));
     }
 
     @Override
@@ -72,7 +76,7 @@ public class MNBTagger extends Tagger {
             bagOfWords(text).forEach((word, count) -> {
                 Keyword kw = kws.get(word);
                 if (kw != null) {
-                    prob.add(kw.weight());
+                    prob.add(kw.weight() * count.doubleValue());
                 }
             });
             probByTag.put(tag, prob);
