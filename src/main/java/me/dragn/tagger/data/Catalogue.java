@@ -10,7 +10,7 @@ import java.util.*;
 import java.util.function.BiConsumer;
 
 /**
- * Sites catalogued by tag.
+ * Documents catalogued by tag.
  * <p>
  * User: dsabelnikov
  * Date: 8/21/14
@@ -19,9 +19,9 @@ import java.util.function.BiConsumer;
 public class Catalogue {
 
     /**
-     * Map tag -> list of sites.
+     * Map tag -> list of documents.
      */
-    private Map<String, Collection<String>> sites = new HashMap<>();
+    private Map<String, Collection<String>> documents = new HashMap<>();
 
     public static Catalogue fromFile(String file) throws IOException {
         Catalogue catalogue = new Catalogue();
@@ -29,35 +29,35 @@ public class Catalogue {
             StringTokenizer st = new StringTokenizer(line, "|");
             if (st.countTokens() < 2) throw new IllegalArgumentException("Illegal file format");
 
-            catalogue.sites.put(st.nextToken(), Arrays.asList(st.nextToken().split(",")));
+            catalogue.documents.put(st.nextToken(), Arrays.asList(st.nextToken().split(",")));
         });
         return catalogue;
     }
 
     public Collection<String> tags() {
-        return sites.keySet();
+        return documents.keySet();
     }
 
     public Collection<String> byTag(String tag) {
-        Collection<String> sites = this.sites.get(tag);
-        if (sites == null) {
-            sites = new ArrayList<>();
-            this.sites.put(tag, sites);
+        Collection<String> documents = this.documents.get(tag);
+        if (documents == null) {
+            documents = new ArrayList<>();
+            this.documents.put(tag, documents);
         }
-        return sites;
+        return documents;
     }
 
-    public void add(String tag, List<String> sites) {
-        byTag(tag).addAll(sites);
+    public void add(String tag, List<String> documents) {
+        byTag(tag).addAll(documents);
     }
 
     public void toFile(String file) throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(Paths.get(file))) {
-            sites.forEach((tag, sites) -> {
+            documents.forEach((tag, docs) -> {
                 try {
                     writer.write(tag);
                     writer.write("|");
-                    writer.write(StringUtils.join(sites, ","));
+                    writer.write(StringUtils.join(docs, ","));
                     writer.write("\n");
                 } catch (IOException e) {
                     e.printStackTrace();
@@ -69,18 +69,18 @@ public class Catalogue {
     }
 
     public void forEach(BiConsumer<String, Collection<String>> cons) {
-        sites.forEach(cons);
+        documents.forEach(cons);
     }
 
     public void parallelForEach(BiConsumer<String, Collection<String>> cons) {
-        sites.entrySet().parallelStream().forEach(entry -> cons.accept(entry.getKey(), entry.getValue()));
+        documents.entrySet().parallelStream().forEach(entry -> cons.accept(entry.getKey(), entry.getValue()));
     }
 
-    public void add(String tag, String site) {
-        byTag(tag).add(site);
+    public void add(String tag, String document) {
+        byTag(tag).add(document);
     }
 
     public Map<String, Collection<String>> map() {
-        return sites;
+        return documents;
     }
 }

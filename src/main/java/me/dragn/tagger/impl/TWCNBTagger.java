@@ -1,6 +1,8 @@
-package me.dragn.tagger;
+package me.dragn.tagger.impl;
 
+import me.dragn.tagger.Tagger;
 import me.dragn.tagger.data.Catalogue;
+import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -21,9 +23,16 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class TWCNBTagger extends Tagger {
 
+    public TWCNBTagger(DataProvider provider) {
+        super(provider);
+    }
+
     @Override
     public void learn(Catalogue catalogue) throws IOException {
         Keywords keywords = new Keywords();
+
+        int docLimit = catalogue.map().entrySet().stream().mapToInt(entry -> entry.getValue().size()).min().getAsInt();
+        System.out.println("Doc limit: " + docLimit);
 
         // Instead of counting how many word occurrences in the document of class C,
         // we count word occurrences in the documents of other classes.
@@ -31,23 +40,23 @@ public class TWCNBTagger extends Tagger {
         // 1. Count the words and apply TF transform
         // d(i,j) count of word i in document j
         Map<String, Map<String, MutableDouble>> wordCount = new ConcurrentHashMap<>();
-        AtomicInteger siteCount = new AtomicInteger(0);
+        AtomicInteger docCount = new AtomicInteger(0);
 
         // docCount(i) - number of documents that have word i
         Map<String, MutableInt> wordDocCount = new ConcurrentHashMap<>();
 
-        catalogue.parallelForEach((tag, sites) -> {
-            sites.forEach(site -> {
-                System.out.println(site);
+        catalogue.parallelForEach((tag, docs) -> {
+            docs.stream().limit(docLimit).forEach(doc -> {
+                System.out.println(doc);
                 Map<String, MutableDouble> map = new HashMap<>();
-                bagOfWords(getSiteText(site)).forEach((word, count) -> {
+                bagOfWords(getDocument(doc)).forEach((word, count) -> {
                     map.put(word, new MutableDouble(Math.log(count.intValue() + 1)));
                     synchronized (wordDocCount) {
                         addToMapValue(wordDocCount, word, 1);
                     }
                 });
-                wordCount.put(site, map);
-                siteCount.incrementAndGet();
+                wordCount.put(doc, map);
+                docCount.incrementAndGet();
             });
         });
 
@@ -55,12 +64,12 @@ public class TWCNBTagger extends Tagger {
         wordCount.forEach((doc, words) -> {
             words.forEach((word, count) -> {
                 count.setValue(count.getValue() *
-                                Math.log(siteCount.doubleValue() / wordDocCount.get(word).doubleValue())
+                                Math.log(docCount.doubleValue() / wordDocCount.get(word).doubleValue())
                 );
             });
         });
 
-        // 2. Count the occurrences of word i not in sites with tag C
+        // 2. Count the occurrences of word i not in documents with tag C
         // ~N(C,i)
         Map<String, Map<String, MutableInt>> notWordCount = new ConcurrentHashMap<>(catalogue.tags().size());
         catalogue.tags().forEach(tag -> notWordCount.put(tag, new HashMap<>()));
@@ -68,9 +77,9 @@ public class TWCNBTagger extends Tagger {
         // ~N(C) count of words occurrences not in class C
         Map<String, MutableInt> totalCount = new HashMap<>(catalogue.tags().size());
 
-        catalogue.forEach((tag, sites) -> {
-            sites.forEach((site) -> {
-                wordCount.get(site).forEach((word, count) -> {
+        catalogue.forEach((tag, docs) -> {
+            docs.stream().limit(docLimit).forEach((doc) -> {
+                wordCount.get(doc).forEach((word, count) -> {
                     catalogue.tags().stream().filter(t -> !tag.equals(t)).forEach(t -> {
                         addToMapValue(notWordCount.get(t), word, count.intValue());
                         addToMapValue(totalCount, t, count.intValue());
@@ -96,7 +105,7 @@ public class TWCNBTagger extends Tagger {
 
     @Override
     public String tagText(String text) {
-        // Probabilities for site to have a tag P(site|tag)
+        // Probabilities for doc to have a tag P(doc|tag)
         Map<String, MutableDouble> probByTag = new HashMap<>();
 
         getKeywords().tags().forEach(tag -> {

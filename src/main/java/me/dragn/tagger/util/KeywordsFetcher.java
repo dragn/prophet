@@ -1,4 +1,4 @@
-package me.dragn.tagger;
+package me.dragn.tagger.util;
 
 import me.dragn.tagger.data.Catalogue;
 import me.dragn.tagger.data.Keyword;

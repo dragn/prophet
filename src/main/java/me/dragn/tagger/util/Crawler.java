@@ -1,4 +1,4 @@
-package me.dragn.tagger;
+package me.dragn.tagger.util;
 
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;

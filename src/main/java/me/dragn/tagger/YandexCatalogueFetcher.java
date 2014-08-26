@@ -1,6 +1,7 @@
 package me.dragn.tagger;
 
 import me.dragn.tagger.data.Catalogue;
+import me.dragn.tagger.util.CatalogFetcher;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;

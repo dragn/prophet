@@ -1,6 +1,9 @@
 package me.dragn.tagger;
 
 import me.dragn.tagger.data.Catalogue;
+import me.dragn.tagger.impl.MNBTagger;
+import me.dragn.tagger.prov.SiteDownloadDataProvider;
+import me.dragn.tagger.util.Crawler;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -13,10 +16,10 @@ import java.nio.file.Paths;
 public class TaggerMain {
 
     public static void main(String... args) throws IOException {
-        Tagger tagger = new TWCNBTagger();
+        Tagger tagger = new MNBTagger(new SiteDownloadDataProvider());
         tagger.learn(Catalogue.fromFile("./learn-data/mini-catalogue.out"));
         //tagger.fromFile("./keywords.out");
-        tagger.toFile("./keywords.out");
+        tagger.toFile("./keywords_MNB_mini.out");
         tagger.test(Catalogue.fromFile("test-data/mini-catalogue.out"));
     }
 

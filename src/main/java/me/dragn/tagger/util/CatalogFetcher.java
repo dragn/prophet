@@ -1,4 +1,4 @@
-package me.dragn.tagger;
+package me.dragn.tagger.util;
 
 import me.dragn.tagger.data.Catalogue;
 import org.apache.commons.lang3.tuple.Pair;

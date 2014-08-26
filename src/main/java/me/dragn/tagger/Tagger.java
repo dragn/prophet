@@ -1,10 +1,11 @@
 package me.dragn.tagger;
 
 import me.dragn.tagger.data.Catalogue;
+import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
+import me.dragn.tagger.util.KeywordsFetcher;
 import org.apache.commons.lang3.mutable.MutableInt;
-import org.jsoup.nodes.Document;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -22,6 +23,12 @@ import java.util.regex.Matcher;
 public abstract class Tagger {
 
     private Keywords keywords;
+
+    private DataProvider provider;
+
+    public Tagger(DataProvider provider) {
+        this.provider = provider;
+    }
 
     public Keywords getKeywords() {
         return keywords;
@@ -43,9 +50,11 @@ public abstract class Tagger {
      */
     public abstract void learn(Catalogue catalogue) throws IOException;
 
-    protected String getSiteText(String site) {
-        Document doc = Crawler.getWithRetry(site, 5000, 3);
-        return doc != null ? doc.text() : "";
+    /**
+     * Retrieves a document from DataProvider
+     */
+    public String getDocument(String key) {
+        return provider.getDocument(key);
     }
 
     /**
@@ -61,11 +70,11 @@ public abstract class Tagger {
      */
     public void test(Catalogue input) {
         Catalogue myCatalogue = new Catalogue();
-        input.forEach((tag, sites) -> sites.parallelStream().forEach(site -> {
-            String calc = tagText(getSiteText(site));
-            System.out.printf("%s: %s\n", site, calc);
+        input.forEach((tag, docs) -> docs.parallelStream().forEach(doc -> {
+            String calc = tagText(provider.getDocument(doc));
+            System.out.printf("%s: %s\n", doc, calc);
             synchronized (myCatalogue) {
-                myCatalogue.add(calc, site);
+                myCatalogue.add(calc, doc);
             }
         }));
         TaggerTest.score(input, myCatalogue);

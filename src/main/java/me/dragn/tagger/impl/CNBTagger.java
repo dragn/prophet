@@ -1,6 +1,8 @@
-package me.dragn.tagger;
+package me.dragn.tagger.impl;
 
+import me.dragn.tagger.Tagger;
 import me.dragn.tagger.data.Catalogue;
+import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -22,6 +24,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class CNBTagger extends Tagger {
 
+    public CNBTagger(DataProvider provider) {
+        super(provider);
+    }
+
     @Override
     public void learn(Catalogue catalogue) throws IOException {
         Keywords keywords = new Keywords();
@@ -29,22 +35,22 @@ public class CNBTagger extends Tagger {
         // Instead of counting how many word occurrences in the document of class C,
         // we count word occurrences in the documents of other classes.
 
-        // 1. Count the occurrences of word i in sites with tag C
+        // 1. Count the occurrences of word i in documents with tag C
         // N(C,i) = wordCount.get(C).get(i)
         Map<String, Map<String, MutableInt>> wordCount = new ConcurrentHashMap<>();
 
-        catalogue.parallelForEach((tag, sites) -> {
+        catalogue.parallelForEach((tag, docs) -> {
             Map<String, MutableInt> map = new HashMap<>();
-            sites.forEach(site -> {
-                System.out.println(site);
-                bagOfWords(getSiteText(site)).forEach((word, count) -> {
+            docs.forEach(doc -> {
+                System.out.println(doc);
+                bagOfWords(getDocument(doc)).forEach((word, count) -> {
                     addToMapValue(map, word, count.intValue());
                 });
             });
             wordCount.put(tag, map);
         });
 
-        // 2. Count the occurrences of word i not in sites with tag C
+        // 2. Count the occurrences of word i not in documents with tag C
         // ~N(C,i)
         Map<String, Map<String, MutableInt>> notWordCount = new ConcurrentHashMap<>(catalogue.tags().size());
         catalogue.tags().forEach(tag -> notWordCount.put(tag, new HashMap<>()));
@@ -78,7 +84,7 @@ public class CNBTagger extends Tagger {
 
     @Override
     public String tagText(String text) {
-        // Probabilities for site to have a tag P(site|tag)
+        // Probabilities for document to have a tag P(doc|tag)
         Map<String, MutableDouble> probByTag = new HashMap<>();
 
         getKeywords().tags().forEach(tag -> {

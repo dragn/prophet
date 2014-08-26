@@ -1,6 +1,8 @@
-package me.dragn.tagger;
+package me.dragn.tagger.impl;
 
+import me.dragn.tagger.Tagger;
 import me.dragn.tagger.data.Catalogue;
+import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -20,6 +22,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class MNBTagger extends Tagger {
 
+    public MNBTagger(DataProvider provider) {
+        super(provider);
+    }
+
     @Override
     public void learn(Catalogue catalogue) throws IOException {
         // MNB classifier
@@ -31,7 +37,7 @@ public class MNBTagger extends Tagger {
 
         Keywords keywords = new Keywords();
 
-        catalogue.parallelForEach((tag, sites) -> {
+        catalogue.parallelForEach((tag, docs) -> {
             // N(C,i) number of occurrences of word i in class C
             Map<String, MutableInt> wordCount = new ConcurrentHashMap<>();
 
@@ -41,9 +47,9 @@ public class MNBTagger extends Tagger {
             // alpha - number of words
             final MutableInt alpha = new MutableInt(0);
 
-            sites.forEach(site -> {
-                System.out.println(site);
-                bagOfWords(getSiteText(site)).forEach((word, count) -> {
+            docs.forEach(doc -> {
+                System.out.println(doc);
+                bagOfWords(getDocument(doc)).forEach((word, count) -> {
                     addToMapValue(wordCount, word, count.intValue());
                     total.add(count);
                     alpha.increment();
@@ -63,7 +69,7 @@ public class MNBTagger extends Tagger {
     @Override
     public String tagText(String text) {
 
-        // Probabilities for site to have a tag P(site|tag)
+        // Probabilities for document to have a tag P(doc|tag)
         Map<String, MutableDouble> probByTag = new HashMap<>();
 
         getKeywords().tags().forEach(tag -> {
