@@ -36,6 +36,7 @@ public class CNBTagger extends Tagger {
         catalogue.parallelForEach((tag, sites) -> {
             Map<String, MutableInt> map = new HashMap<>();
             sites.forEach(site -> {
+                System.out.println(site);
                 bagOfWords(getSiteText(site)).forEach((word, count) -> {
                     addToMapValue(map, word, count.intValue());
                 });
@@ -72,7 +73,7 @@ public class CNBTagger extends Tagger {
             });
         });
 
-        setKeywords(keywords);
+        setKeywords(normalize(keywords));
     }
 
     @Override

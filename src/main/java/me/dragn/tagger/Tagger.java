@@ -1,6 +1,7 @@
 package me.dragn.tagger;
 
 import me.dragn.tagger.data.Catalogue;
+import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
 import org.apache.commons.lang3.mutable.MutableInt;
 import org.jsoup.nodes.Document;
@@ -81,6 +82,17 @@ public abstract class Tagger {
         while (matcher.find()) {
             cons.accept(matcher.group().toLowerCase());
         }
+    }
+
+    protected Keywords normalize(Keywords keywords) {
+        Keywords kws = new Keywords();
+        keywords.forEach((tag, words) -> {
+            double sum = words.entrySet().stream().mapToDouble(entry -> entry.getValue().weight()).sum();
+            words.forEach((word, kw) -> {
+                kws.add(tag, new Keyword(word, kw.weight() / sum));
+            });
+        });
+        return kws;
     }
 
     protected void addToMapValue(Map<String, MutableInt> map, String key, int add) {
