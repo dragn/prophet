@@ -71,10 +71,13 @@ public abstract class Tagger {
     public void test(Catalogue input) {
         Catalogue myCatalogue = new Catalogue();
         input.forEach((tag, docs) -> docs.parallelStream().forEach(doc -> {
-            String calc = tagText(provider.getDocument(doc));
-            System.out.printf("%s: %s\n", doc, calc);
-            synchronized (myCatalogue) {
-                myCatalogue.add(calc, doc);
+            String text = provider.getDocument(doc);
+            if (text != null) {
+                String calc = tagText(text);
+                System.out.printf("%s: %s\n", doc, calc);
+                synchronized (myCatalogue) {
+                    myCatalogue.add(calc, doc);
+                }
             }
         }));
         TaggerTest.score(input, myCatalogue);
@@ -96,7 +99,7 @@ public abstract class Tagger {
     protected Keywords normalize(Keywords keywords) {
         Keywords kws = new Keywords();
         keywords.forEach((tag, words) -> {
-            double sum = words.entrySet().stream().mapToDouble(entry -> entry.getValue().weight()).sum();
+            double sum = words.entrySet().stream().mapToDouble(entry -> Math.abs(entry.getValue().weight())).sum();
             words.forEach((word, kw) -> {
                 kws.add(tag, new Keyword(word, kw.weight() / sum));
             });

@@ -19,7 +19,7 @@ public class SiteDownloadDataProvider implements DataProvider {
      */
     @Override
     public String getDocument(String key) {
-        Document doc = Crawler.getWithRetry(key, 10, 3);
-        return doc != null ? doc.text() : "";
+        Document doc = Crawler.getWithRetry(key, 10000, 3);
+        return doc != null ? doc.text() : null;
     }
 }
