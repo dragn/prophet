@@ -1,7 +1,7 @@
 package me.dragn.tagger;
 
 import me.dragn.tagger.data.Catalogue;
-import me.dragn.tagger.impl.MNBTagger;
+import me.dragn.tagger.impl.CNBTagger;
 import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.prov.SiteDownloadDataProvider;
 import me.dragn.tagger.util.Crawler;
@@ -18,10 +18,10 @@ public class TaggerMain {
 
     public static void main(String... args) throws IOException {
         DataProvider provider = new SiteDownloadDataProvider();
-        Tagger tagger = new MNBTagger(provider);
-        //tagger.learn(Catalogue.fromFile("./learn-data/mini-catalogue.out"));
-        tagger.fromFile("./keywords_MNB_mini.out");
-        //tagger.toFile("./keywords_MNB_mini.out");
+        Tagger tagger = new CNBTagger(provider);
+        tagger.learn(Catalogue.fromFile("./learn-data/mini-catalogue.out"));
+        //tagger.fromFile("./keywords_MNB_mini.out");
+        tagger.toFile("./keywords_CNB_mini.out");
         tagger.test(Catalogue.fromFile("test-data/mini-catalogue.out"));
         //System.out.println(tagger.tagText(provider.getDocument("http://www.genolink.ru/")));
     }

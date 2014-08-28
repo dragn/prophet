@@ -54,9 +54,6 @@ public class MNBTagger extends Tagger {
 
             final MutableInt total = new MutableInt(0);
 
-            // alpha - number of words
-            final MutableInt alpha = new MutableInt(0);
-
             docs.forEach(doc -> {
                 System.out.println(doc);
                 String text = getDocument(doc);
@@ -64,7 +61,6 @@ public class MNBTagger extends Tagger {
                     bagOfWords(text).forEach((word, count) -> {
                         addToMapValue(wc, word, count.intValue());
                         total.add(count);
-                        alpha.increment();
                         words.add(word);
                     });
                 }

@@ -4,6 +4,7 @@ import me.dragn.tagger.Tagger;
 import me.dragn.tagger.data.Catalogue;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
+import me.dragn.tagger.impl.CNBTagger;
 import me.dragn.tagger.impl.MNBTagger;
 import me.dragn.tagger.prov.DataProvider;
 import org.junit.Before;
@@ -21,7 +22,7 @@ import static org.junit.Assert.assertEquals;
  * Date: 8/26/14
  * Time: 7:30 PM
  */
-public class MNBTaggerTest {
+public class TaggerTest {
 
     private DataProvider testDataProvider = new DataProvider() {
 
@@ -86,6 +87,50 @@ public class MNBTaggerTest {
         assertEquals(-0.1418, kws.byTag("CCC").get("dddd").weight(), 0.0001);
         assertEquals(-0.1791, kws.byTag("CCC").get("ssss").weight(), 0.0001);
         assertEquals(-0.1791, kws.byTag("CCC").get("vvvv").weight(), 0.0001);
+
+        tagger.test(c);
+    }
+
+    @Test
+    public void testCNBTagger() throws IOException {
+        Catalogue c = new Catalogue();
+
+        c.add("AAA", Arrays.asList("111", "222"));
+        c.add("BBB", Arrays.asList("333", "444"));
+        c.add("CCC", Arrays.asList("555", "666", "777"));
+
+        Tagger tagger = new CNBTagger(testDataProvider);
+
+        tagger.learn(c);
+
+        // some of weights in each class should be equal to 1
+        tagger.getKeywords().forEach((tag, words) -> {
+            double sum = words.values().stream().mapToDouble(Keyword::weight).sum();
+            assertEquals(Math.abs(sum), 1, 0.0001);
+        });
+
+        Keywords kws = tagger.getKeywords();
+
+        assertEquals(-0.1414, kws.byTag("AAA").get("aaaa").weight(), 0.0001);
+        assertEquals(-0.1675, kws.byTag("AAA").get("bbbb").weight(), 0.0001);
+        assertEquals(-0.1414, kws.byTag("AAA").get("cccc").weight(), 0.0001);
+        assertEquals(-0.1414, kws.byTag("AAA").get("dddd").weight(), 0.0001);
+        assertEquals(-0.2042, kws.byTag("AAA").get("ssss").weight(), 0.0001);
+        assertEquals(-0.2042, kws.byTag("AAA").get("vvvv").weight(), 0.0001);
+
+        assertEquals(-0.1631, kws.byTag("BBB").get("aaaa").weight(), 0.0001);
+        assertEquals(-0.1370, kws.byTag("BBB").get("bbbb").weight(), 0.0001);
+        assertEquals(-0.1370, kws.byTag("BBB").get("cccc").weight(), 0.0001);
+        assertEquals(-0.1631, kws.byTag("BBB").get("dddd").weight(), 0.0001);
+        assertEquals(-0.2000, kws.byTag("BBB").get("ssss").weight(), 0.0001);
+        assertEquals(-0.2000, kws.byTag("BBB").get("vvvv").weight(), 0.0001);
+
+        assertEquals(-0.1131, kws.byTag("CCC").get("aaaa").weight(), 0.0001);
+        assertEquals(-0.1131, kws.byTag("CCC").get("bbbb").weight(), 0.0001);
+        assertEquals(-0.1378, kws.byTag("CCC").get("cccc").weight(), 0.0001);
+        assertEquals(-0.1725, kws.byTag("CCC").get("dddd").weight(), 0.0001);
+        assertEquals(-0.2318, kws.byTag("CCC").get("ssss").weight(), 0.0001);
+        assertEquals(-0.2318, kws.byTag("CCC").get("vvvv").weight(), 0.0001);
 
         tagger.test(c);
     }

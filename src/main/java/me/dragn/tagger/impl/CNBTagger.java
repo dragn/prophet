@@ -2,15 +2,17 @@ package me.dragn.tagger.impl;
 
 import me.dragn.tagger.Tagger;
 import me.dragn.tagger.data.Catalogue;
-import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
+import me.dragn.tagger.prov.DataProvider;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -32,22 +34,29 @@ public class CNBTagger extends Tagger {
     public void learn(Catalogue catalogue) throws IOException {
         Keywords keywords = new Keywords();
 
+        // Set of all encountered words
+        Set<String> allWords = new HashSet<>();
+
         // Instead of counting how many word occurrences in the document of class C,
         // we count word occurrences in the documents of other classes.
 
         // 1. Count the occurrences of word i in documents with tag C
-        // N(C,i) = wordCount.get(C).get(i)
+        // N(C,i) number of occurrences of word i in class C
         Map<String, Map<String, MutableInt>> wordCount = new ConcurrentHashMap<>();
 
         catalogue.parallelForEach((tag, docs) -> {
-            Map<String, MutableInt> map = new HashMap<>();
+            Map<String, MutableInt> wc = new ConcurrentHashMap<>();
             docs.forEach(doc -> {
                 System.out.println(doc);
-                bagOfWords(getDocument(doc)).forEach((word, count) -> {
-                    addToMapValue(map, word, count.intValue());
-                });
+                String text = getDocument(doc);
+                if (text != null) {
+                    bagOfWords(text).forEach((word, count) -> {
+                        addToMapValue(wc, word, count.intValue());
+                        allWords.add(word);
+                    });
+                }
             });
-            wordCount.put(tag, map);
+            wordCount.put(tag, wc);
         });
 
         // 2. Count the occurrences of word i not in documents with tag C
@@ -70,11 +79,13 @@ public class CNBTagger extends Tagger {
         // release wordCount
         wordCount.clear();
 
-        // 3. Calculate weights
-        notWordCount.forEach((tag, words) -> {
-            words.forEach((word, count) -> {
+        // 3. Calculate weights as log10((~N(C,i) + 1) / (~N(c) + allWords.size())
+        catalogue.tags().forEach(tag -> {
+            allWords.forEach(word -> {
+                MutableInt countMutable = notWordCount.get(tag).get(word);
+                int count = countMutable == null ? 0 : countMutable.getValue();
                 keywords.add(tag, new Keyword(word,
-                        Math.log((count.doubleValue() + 1) / (totalCount.get(tag).doubleValue() + words.size()))
+                        Math.log10((double) (count + 1) / (totalCount.get(tag).doubleValue() + allWords.size()))
                 ));
             });
         });
@@ -102,7 +113,7 @@ public class CNBTagger extends Tagger {
             });
             probByTag.put(tag, prob);
 
-            System.out.println(tag + ": " + probByTag.get(tag));
+            //System.out.println(tag + ": " + probByTag.get(tag));
         });
 
         // return a tag with max probability
