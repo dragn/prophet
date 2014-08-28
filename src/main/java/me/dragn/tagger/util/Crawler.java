@@ -2,6 +2,7 @@ package me.dragn.tagger.util;
 
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
+import org.jsoup.UnsupportedMimeTypeException;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
@@ -23,7 +24,8 @@ public class Crawler {
     private String baseUrl;
     private Set<String> history = new HashSet<>();
 
-    private final static int REQUEST_TIMEOUT = 30 * 1000; // 30sec
+    private int connectionRetries = 5;
+    private int requestTimeout = 30 * 1000; // 30sec
     private final static String USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) " +
             "Chrome/36.0.1985.18 Safari/537.36";
 
@@ -116,26 +118,28 @@ public class Crawler {
         return link;
     }
 
-    public static Document getWithRetry(String url) {
-        return getWithRetry(url, REQUEST_TIMEOUT, 5);
+    private Document getWithRetry(String url) {
+        return getWithRetry(url, requestTimeout, connectionRetries);
     }
 
     public static Document getWithRetry(String url, int requestTimeout, int maxRetries) {
         Document doc = null;
         int retries = 0;
-        while (doc == null && retries < maxRetries) {
-            try {
-                doc = Jsoup.connect(url).timeout(requestTimeout).userAgent(USER_AGENT).get();
-            } catch (SocketTimeoutException | ConnectException ex) {
-                // .. retry
-                retries++;
-            } catch (HttpStatusException ex) {
-                if (ex.getStatusCode() != 404 && ex.getStatusCode() != 403) ex.printStackTrace();
-                break;
-            } catch (Exception e) {
-                e.printStackTrace();
-                break;
-            }
+        while (doc == null && retries < maxRetries) try {
+            doc = Jsoup.connect(url).timeout(requestTimeout).userAgent(USER_AGENT).get();
+        } catch (SocketTimeoutException | ConnectException ex) {
+            // .. retry
+            retries++;
+        } catch (HttpStatusException ex) {
+            if (ex.getStatusCode() != 404 && ex.getStatusCode() != 403 &&
+                    ex.getStatusCode() != 503) ex.printStackTrace();
+            break;
+        } catch (UnsupportedMimeTypeException ex) {
+            // ignore
+            break;
+        } catch (Exception e) {
+            e.printStackTrace();
+            break;
         }
         return doc;
     }
@@ -148,5 +152,13 @@ public class Crawler {
             this.url = url;
             this.depth = depth;
         }
+    }
+
+    public void setConnectionRetries(int connectionRetries) {
+        this.connectionRetries = connectionRetries;
+    }
+
+    public void setRequestTimeout(int requestTimeout) {
+        this.requestTimeout = requestTimeout;
     }
 }

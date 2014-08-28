@@ -1,7 +1,6 @@
 package me.dragn.tagger.prov;
 
 import me.dragn.tagger.util.Crawler;
-import org.jsoup.nodes.Document;
 
 /**
  * DataProvider implementation that downloads site text from the remote URL's.
@@ -12,6 +11,17 @@ import org.jsoup.nodes.Document;
  * Time: 7:10 PM
  */
 public class SiteDownloadDataProvider implements DataProvider {
+
+    private int crawlDepth;
+
+    public SiteDownloadDataProvider(int crawlDepth) {
+        this.crawlDepth = crawlDepth;
+    }
+
+    public SiteDownloadDataProvider() {
+        this(1);
+    }
+
     /**
      * Retrieves a site's text.
      * @param key
@@ -19,7 +29,13 @@ public class SiteDownloadDataProvider implements DataProvider {
      */
     @Override
     public String getDocument(String key) {
-        Document doc = Crawler.getWithRetry(key, 10000, 3);
-        return doc != null ? doc.text() : null;
+        Crawler crawler = new Crawler(key, crawlDepth);
+        crawler.setRequestTimeout(5000);
+        crawler.setConnectionRetries(3);
+        final StringBuilder text = new StringBuilder();
+        crawler.crawl(doc -> {
+            text.append(doc.text()).append(" ");
+        });
+        return text.toString();
     }
 }

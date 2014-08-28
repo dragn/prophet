@@ -1,15 +1,18 @@
 package me.dragn.tagger;
 
 import me.dragn.tagger.data.Catalogue;
-import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
+import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.util.KeywordsFetcher;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 
@@ -74,9 +77,11 @@ public abstract class Tagger {
             String text = provider.getDocument(doc);
             if (text != null) {
                 String calc = tagText(text);
-                System.out.printf("%s: %s\n", doc, calc);
-                synchronized (myCatalogue) {
-                    myCatalogue.add(calc, doc);
+                System.out.printf("%s: %s\n", doc, StringUtils.isEmpty(calc) ? "Не уверен..." : calc);
+                if (StringUtils.isNotEmpty(calc)) {
+                    synchronized (myCatalogue) {
+                        myCatalogue.add(calc, doc);
+                    }
                 }
             }
         }));
@@ -116,10 +121,35 @@ public abstract class Tagger {
         }
     }
 
+    protected void addToMapValueDouble(Map<String, MutableDouble> map, String key, double add) {
+        MutableDouble value = map.get(key);
+        if (value == null) {
+            map.put(key, new MutableDouble(add));
+        } else {
+            value.add(add);
+        }
+    }
+
+    protected String getSigmaBest(Map<String, MutableDouble> probByTag, double sigma) {
+        double mean = probByTag.values().stream().mapToDouble(MutableDouble::getValue).average().getAsDouble();
+
+        // Standard deviation
+        double stDev = Math.sqrt(probByTag.values().stream().mapToDouble(
+                prob -> Math.pow(prob.doubleValue() - mean, 2)).sum() / probByTag.size());
+
+        //System.out.printf("Mean: %f, st.dev.: %f\n", mean, stDev);
+
+        // Check for a 4-sigma certainty
+        Optional<Map.Entry<String, MutableDouble>> maxEntry = probByTag.entrySet().stream()
+                .filter(entry -> entry.getValue().doubleValue() > (mean + sigma * stDev))
+                .max((e1, e2) -> e1.getValue().compareTo(e2.getValue()));
+
+        return maxEntry.isPresent() ? maxEntry.get().getKey() : null;
+    }
+
     protected void incrementMapValue(Map<String, MutableInt> map, String key) {
         addToMapValue(map, key, 1);
     }
 
     public abstract String tagText(String text);
-
 }

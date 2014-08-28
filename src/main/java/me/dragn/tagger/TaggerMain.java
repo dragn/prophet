@@ -17,13 +17,13 @@ import java.nio.file.Paths;
 public class TaggerMain {
 
     public static void main(String... args) throws IOException {
-        DataProvider provider = new SiteDownloadDataProvider();
+        DataProvider provider = new SiteDownloadDataProvider(2);
         Tagger tagger = new CNBTagger(provider);
-        tagger.learn(Catalogue.fromFile("./learn-data/mini-catalogue.out"));
-        //tagger.fromFile("./keywords_MNB_mini.out");
-        tagger.toFile("./keywords_CNB_mini.out");
+        //tagger.learn(Catalogue.fromFile("./learn-data/catalogue.out"));
+        tagger.fromFile("./keywords_TWCNB.out");
+        //tagger.toFile("./keywords_TWCNB.out");
         tagger.test(Catalogue.fromFile("test-data/mini-catalogue.out"));
-        //System.out.println(tagger.tagText(provider.getDocument("http://www.genolink.ru/")));
+        //System.out.println(tagger.tagText(provider.getDocument("http://www.zvuki.ru/")));
     }
 
     public static void dump(String catalogueFile, String outFile) throws IOException {

@@ -9,10 +9,7 @@ import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -25,6 +22,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Time: 5:48 PM
  */
 public class CNBTagger extends Tagger {
+
+    private final int SITE_LIMIT = 50;
 
     public CNBTagger(DataProvider provider) {
         super(provider);
@@ -46,7 +45,8 @@ public class CNBTagger extends Tagger {
 
         catalogue.parallelForEach((tag, docs) -> {
             Map<String, MutableInt> wc = new ConcurrentHashMap<>();
-            docs.forEach(doc -> {
+            Collections.shuffle((List) docs);
+            docs.stream().limit(SITE_LIMIT).forEach(doc -> {
                 System.out.println(doc);
                 String text = getDocument(doc);
                 if (text != null) {
@@ -116,7 +116,6 @@ public class CNBTagger extends Tagger {
             //System.out.println(tag + ": " + probByTag.get(tag));
         });
 
-        // return a tag with max probability
-        return probByTag.entrySet().stream().max((e1, e2) -> e1.getValue().compareTo(e2.getValue())).get().getKey();
+        return getSigmaBest(probByTag, 2);
     }
 }

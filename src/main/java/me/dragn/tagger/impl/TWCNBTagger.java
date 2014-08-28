@@ -2,17 +2,17 @@ package me.dragn.tagger.impl;
 
 import me.dragn.tagger.Tagger;
 import me.dragn.tagger.data.Catalogue;
-import me.dragn.tagger.prov.DataProvider;
 import me.dragn.tagger.data.Keyword;
 import me.dragn.tagger.data.Keywords;
+import me.dragn.tagger.prov.DataProvider;
 import org.apache.commons.lang3.mutable.MutableDouble;
-import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Transformed Weight-Normalized Complement Naive Bayes.
@@ -31,71 +31,73 @@ public class TWCNBTagger extends Tagger {
     public void learn(Catalogue catalogue) throws IOException {
         Keywords keywords = new Keywords();
 
-        int docLimit = catalogue.map().entrySet().stream().mapToInt(entry -> entry.getValue().size()).min().getAsInt();
-        System.out.println("Doc limit: " + docLimit);
+        // Set of all words
+        Set<String> allWords = new HashSet<>();
 
-        // Instead of counting how many word occurrences in the document of class C,
-        // we count word occurrences in the documents of other classes.
+        // 1. Count word occurrences for each document
 
-        // 1. Count the words and apply TF transform
-        // d(i,j) count of word i in document j
-        Map<String, Map<String, MutableDouble>> wordCount = new ConcurrentHashMap<>();
-        AtomicInteger docCount = new AtomicInteger(0);
-
-        // docCount(i) - number of documents that have word i
-        Map<String, MutableInt> wordDocCount = new ConcurrentHashMap<>();
+        // d(i,j) - number of occurrences of word i in document j
+        Map<String, Map<String, MutableDouble>> docCount = new HashMap<>();
 
         catalogue.parallelForEach((tag, docs) -> {
-            docs.stream().limit(docLimit).forEach(doc -> {
-                System.out.println(doc);
-                Map<String, MutableDouble> map = new HashMap<>();
-                bagOfWords(getDocument(doc)).forEach((word, count) -> {
-                    map.put(word, new MutableDouble(Math.log(count.intValue() + 1)));
-                    synchronized (wordDocCount) {
-                        addToMapValue(wordDocCount, word, 1);
-                    }
+            docs.forEach(docKey -> {
+                Map<String, MutableDouble> currentDocCount = new HashMap<>();
+                bagOfWords(getDocument(docKey)).forEach((word, count) -> {
+                    addToMapValueDouble(currentDocCount, word, count.intValue());
+                    allWords.add(word);
                 });
-                wordCount.put(doc, map);
-                docCount.incrementAndGet();
+                docCount.put(docKey, currentDocCount);
             });
         });
 
-        // 2. Apply IDF transform
-        wordCount.forEach((doc, words) -> {
+        // 2. Calculate delta(i) - number of document which has word i.
+        Map<String, Long> delta = new HashMap<>();
+        allWords.forEach(word -> {
+            long count = docCount.entrySet().stream().filter(entry -> entry.getValue().containsKey(word)).count();
+            delta.put(word, count);
+        });
+
+        // 3. Apply TF-IDF transform. d(i,j) = log(d(i,j) + 1) * (document-count) / delta(i),
+        docCount.forEach((docKey, words) -> {
             words.forEach((word, count) -> {
-                count.setValue(count.getValue() *
-                                Math.log(docCount.doubleValue() / wordDocCount.get(word).doubleValue())
-                );
+                count.setValue(Math.log10(count.getValue() + 1) * docCount.size() / delta.get(word));
             });
         });
 
-        // 2. Count the occurrences of word i not in documents with tag C
+        // 4. Normalize
+        docCount.forEach((docKey, words) -> {
+            Double sum = words.entrySet().stream().mapToDouble(entry -> entry.getValue().toDouble()).sum();
+            words.forEach((word, count) -> {
+                count.setValue(count.getValue() / sum);
+            });
+        });
+
+        // 5. Calculate ~N(c,i)
         // ~N(C,i)
-        Map<String, Map<String, MutableInt>> notWordCount = new ConcurrentHashMap<>(catalogue.tags().size());
+        Map<String, Map<String, MutableDouble>> notWordCount = new ConcurrentHashMap<>(catalogue.tags().size());
         catalogue.tags().forEach(tag -> notWordCount.put(tag, new HashMap<>()));
 
         // ~N(C) count of words occurrences not in class C
-        Map<String, MutableInt> totalCount = new HashMap<>(catalogue.tags().size());
+        Map<String, MutableDouble> totalCount = new HashMap<>(catalogue.tags().size());
 
-        catalogue.forEach((tag, docs) -> {
-            docs.stream().limit(docLimit).forEach((doc) -> {
-                wordCount.get(doc).forEach((word, count) -> {
-                    catalogue.tags().stream().filter(t -> !tag.equals(t)).forEach(t -> {
-                        addToMapValue(notWordCount.get(t), word, count.intValue());
-                        addToMapValue(totalCount, t, count.intValue());
+        catalogue.tags().forEach(tag -> {
+            catalogue.map().entrySet().stream().filter(entry -> !entry.getKey().equals(tag)).forEach(entry -> {
+                entry.getValue().forEach(docKey -> {
+                    docCount.get(docKey).forEach((word, count) -> {
+                        addToMapValueDouble(notWordCount.get(tag), word, count.doubleValue());
+                        addToMapValueDouble(totalCount, tag, count.doubleValue());
                     });
                 });
             });
         });
 
-        // release wordCount
-        wordCount.clear();
-
-        // 3. Calculate weights
-        notWordCount.forEach((tag, words) -> {
-            words.forEach((word, count) -> {
+        // 6. Calculate weights as log10((~N(C,i) + 1) / (~N(c) + allWords.size())
+        catalogue.tags().forEach(tag -> {
+            allWords.forEach(word -> {
+                MutableDouble countMutable = notWordCount.get(tag).get(word);
+                double count = countMutable == null ? 0 : countMutable.getValue();
                 keywords.add(tag, new Keyword(word,
-                        Math.log((count.doubleValue() + 1) / (totalCount.get(tag).doubleValue() + words.size()))
+                        Math.log10((count + 1) / (totalCount.get(tag).doubleValue() + allWords.size()))
                 ));
             });
         });
@@ -105,7 +107,7 @@ public class TWCNBTagger extends Tagger {
 
     @Override
     public String tagText(String text) {
-        // Probabilities for doc to have a tag P(doc|tag)
+        // Probabilities for document to have a tag P(doc|tag)
         Map<String, MutableDouble> probByTag = new HashMap<>();
 
         getKeywords().tags().forEach(tag -> {
@@ -118,15 +120,14 @@ public class TWCNBTagger extends Tagger {
             bagOfWords(text).forEach((word, count) -> {
                 Keyword kw = kws.get(word);
                 if (kw != null) {
-                    prob.add(kw.weight() * count.intValue());
+                    prob.subtract(kw.weight() * count.doubleValue());
                 }
             });
             probByTag.put(tag, prob);
 
-            //System.out.println(tag + ": " + probByTag.get(tag));
+            System.out.println(tag + ": " + probByTag.get(tag));
         });
 
-        // return a tag with max probability
-        return probByTag.entrySet().stream().max((e1, e2) -> - e1.getValue().compareTo(e2.getValue())).get().getKey();
+        return getSigmaBest(probByTag, 0);
     }
 }
