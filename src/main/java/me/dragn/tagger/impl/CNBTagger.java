@@ -11,6 +11,7 @@ import org.apache.commons.lang3.mutable.MutableInt;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Complement Naive Bayes implementation.
@@ -117,5 +118,42 @@ public class CNBTagger extends Tagger {
         });
 
         return getSigmaBest(probByTag, 2);
+    }
+
+    @Override
+    public List<String> multitagText(String text) {
+        // Probabilities for document to have a tag P(doc|tag)
+        Map<String, MutableDouble> probByTag = new HashMap<>();
+
+        getKeywords().tags().forEach(tag -> {
+
+            // assume a prior to be equal to zero
+            MutableDouble prob = new MutableDouble(0);
+
+            Map<String, Keyword> kws = getKeywords().byTag(tag);
+
+            bagOfWords(text).forEach((word, count) -> {
+                Keyword kw = kws.get(word);
+                if (kw != null) {
+                    prob.subtract(kw.weight() * count.doubleValue());
+                }
+            });
+            probByTag.put(tag, prob);
+
+            //System.out.println(tag + ": " + probByTag.get(tag));
+        });
+
+        double mean = probByTag.values().stream().mapToDouble(MutableDouble::getValue).average().getAsDouble();
+
+        // Standard deviation
+        double stDev = Math.sqrt(probByTag.values().stream().mapToDouble(
+                prob -> Math.pow(prob.doubleValue() - mean, 2)).sum() / probByTag.size());
+
+        //System.out.printf("Mean: %f, st.dev.: %f\n", mean, stDev);
+
+        // Check for a n-sigma certainty
+        return probByTag.entrySet().stream()
+                .filter(entry -> entry.getValue().doubleValue() > (mean + 2 * stDev))
+                .map(Map.Entry::getKey).collect(Collectors.toList());
     }
 }

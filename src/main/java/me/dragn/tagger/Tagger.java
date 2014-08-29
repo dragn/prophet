@@ -10,9 +10,7 @@ import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
 
@@ -152,4 +150,8 @@ public abstract class Tagger {
     }
 
     public abstract String tagText(String text);
+
+    public List<String> multitagText(String text) {
+        return Arrays.asList(tagText(text));
+    }
 }

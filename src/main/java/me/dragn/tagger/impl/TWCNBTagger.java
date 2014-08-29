@@ -8,10 +8,7 @@ import me.dragn.tagger.prov.DataProvider;
 import org.apache.commons.lang3.mutable.MutableDouble;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -22,6 +19,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * Time: 5:48 PM
  */
 public class TWCNBTagger extends Tagger {
+
+    private final int SITE_LIMIT = 50;
 
     public TWCNBTagger(DataProvider provider) {
         super(provider);
@@ -40,7 +39,9 @@ public class TWCNBTagger extends Tagger {
         Map<String, Map<String, MutableDouble>> docCount = new HashMap<>();
 
         catalogue.parallelForEach((tag, docs) -> {
-            docs.forEach(docKey -> {
+            Collections.shuffle((List)docs);
+            docs.stream().limit(SITE_LIMIT).forEach(docKey -> {
+                System.out.println(docKey);
                 Map<String, MutableDouble> currentDocCount = new HashMap<>();
                 bagOfWords(getDocument(docKey)).forEach((word, count) -> {
                     addToMapValueDouble(currentDocCount, word, count.intValue());
@@ -57,10 +58,10 @@ public class TWCNBTagger extends Tagger {
             delta.put(word, count);
         });
 
-        // 3. Apply TF-IDF transform. d(i,j) = log(d(i,j) + 1) * (document-count) / delta(i),
+        // 3. Apply TF-IDF transform. d(i,j) = log(d(i,j) + 1) * log((document-count) / delta(i)),
         docCount.forEach((docKey, words) -> {
             words.forEach((word, count) -> {
-                count.setValue(Math.log10(count.getValue() + 1) * docCount.size() / delta.get(word));
+                count.setValue(Math.log10(count.getValue() + 1) * Math.log10(docCount.size() / delta.get(word)));
             });
         });
 
@@ -83,10 +84,13 @@ public class TWCNBTagger extends Tagger {
         catalogue.tags().forEach(tag -> {
             catalogue.map().entrySet().stream().filter(entry -> !entry.getKey().equals(tag)).forEach(entry -> {
                 entry.getValue().forEach(docKey -> {
-                    docCount.get(docKey).forEach((word, count) -> {
-                        addToMapValueDouble(notWordCount.get(tag), word, count.doubleValue());
-                        addToMapValueDouble(totalCount, tag, count.doubleValue());
-                    });
+                    Map<String, MutableDouble> docs = docCount.get(docKey);
+                    if (docs != null) {
+                        docs.forEach((word, count) -> {
+                            addToMapValueDouble(notWordCount.get(tag), word, count.doubleValue());
+                            addToMapValueDouble(totalCount, tag, count.doubleValue());
+                        });
+                    }
                 });
             });
         });

@@ -96,9 +96,10 @@ public class Crawler {
         link = link.replaceAll("^//", "http://"); // handle "//site.com" notation
 
         if (link.isEmpty() || link.startsWith("#") || link.startsWith("mailto:") ||
+                link.startsWith("tel:") ||
                 link.startsWith("javascript:")) return null;
 
-        link = link.replaceAll("/./", "/");
+        link = link.replaceAll("/\\./", "/");
 
         // relative with root
         if (link.startsWith("/")) link = baseUrl.replaceAll("/$", "") + link;
@@ -113,7 +114,7 @@ public class Crawler {
             return null;
         }
 
-        link = link.replaceAll("[^/]*/../", ""); // resolve "/../"
+        link = link.replaceAll("[^/]*/\\.\\./", ""); // resolve "/../"
 
         return link;
     }
