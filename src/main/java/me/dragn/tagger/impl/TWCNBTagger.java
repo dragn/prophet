@@ -61,7 +61,7 @@ public class TWCNBTagger extends Tagger {
         // 3. Apply TF-IDF transform. d(i,j) = log(d(i,j) + 1) * log((document-count) / delta(i)),
         docCount.forEach((docKey, words) -> {
             words.forEach((word, count) -> {
-                count.setValue(Math.log10(count.getValue() + 1) * Math.log10(docCount.size() / delta.get(word)));
+                count.setValue(Math.log10(count.getValue() + 1) * Math.log10((double) docCount.size() / delta.get(word)));
             });
         });
 
@@ -129,7 +129,7 @@ public class TWCNBTagger extends Tagger {
             });
             probByTag.put(tag, prob);
 
-            System.out.println(tag + ": " + probByTag.get(tag));
+            //System.out.println(tag + ": " + probByTag.get(tag));
         });
 
         return getSigmaBest(probByTag, 0);

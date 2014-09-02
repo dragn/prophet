@@ -58,7 +58,8 @@ public class Keywords {
             while ((line = read.readLine()) != null) {
                 if (line.startsWith(" ")) {
                     String[] tokens = line.split(" ");
-                    words.put(tokens[1], new Keyword(tokens[1], Double.parseDouble(tokens[2])));
+                    words.put(tokens[1], new Keyword(tokens[1], Double.longBitsToDouble(
+                            Long.parseLong(tokens[2]))));
                 } else {
                     if (!words.isEmpty() && tag != null) {
                         keywords.map.put(tag, words);
@@ -85,7 +86,8 @@ public class Keywords {
         try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(Paths.get(path)))) {
             forEach((tag, words) -> {
                 writer.println(tag);
-                words.forEach((word, keyword) -> writer.printf(" %s %f\n", word, keyword.weight()));
+                words.forEach((word, keyword) -> writer.printf(" %s %d\n", word,
+                        Double.doubleToLongBits(keyword.weight())));
             });
         }
     }
