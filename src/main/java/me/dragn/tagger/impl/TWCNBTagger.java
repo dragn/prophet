@@ -10,17 +10,19 @@ import org.apache.commons.lang3.mutable.MutableDouble;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 /**
  * Transformed Weight-Normalized Complement Naive Bayes.
  * <p>
+ * Based on the article by Rennie et al. [2003]: http://people.csail.mit.edu/jrennie/papers/icml03-nb.pdf
  * User: dsabelnikov
  * Date: 8/25/14
  * Time: 5:48 PM
  */
 public class TWCNBTagger extends Tagger {
 
-    private final int SITE_LIMIT = 50;
+    private final int SITE_LIMIT = 40;
 
     public TWCNBTagger(DataProvider provider) {
         super(provider);
@@ -39,7 +41,7 @@ public class TWCNBTagger extends Tagger {
         Map<String, Map<String, MutableDouble>> docCount = new HashMap<>();
 
         catalogue.parallelForEach((tag, docs) -> {
-            Collections.shuffle((List)docs);
+            Collections.shuffle((List) docs);
             docs.stream().limit(SITE_LIMIT).forEach(docKey -> {
                 System.out.println(docKey);
                 Map<String, MutableDouble> currentDocCount = new HashMap<>();
@@ -133,5 +135,43 @@ public class TWCNBTagger extends Tagger {
         });
 
         return getSigmaBest(probByTag, 0);
+    }
+
+    @Override
+    public List<String> multitagText(String text) {
+        // Probabilities for document to have a tag P(doc|tag)
+        Map<String, MutableDouble> probByTag = new HashMap<>();
+
+        getKeywords().tags().forEach(tag -> {
+
+            // assume a prior to be equal to zero
+            MutableDouble prob = new MutableDouble(0);
+
+            Map<String, Keyword> kws = getKeywords().byTag(tag);
+
+            bagOfWords(text).forEach((word, count) -> {
+                Keyword kw = kws.get(word);
+                if (kw != null) {
+                    prob.subtract(kw.weight() * count.doubleValue());
+                }
+            });
+            probByTag.put(tag, prob);
+
+            //System.out.println(tag + ": " + probByTag.get(tag));
+        });
+
+        double mean = probByTag.values().stream().mapToDouble(MutableDouble::getValue).average().getAsDouble();
+
+        // Standard deviation
+        double stDev = Math.sqrt(probByTag.values().stream().mapToDouble(
+                prob -> Math.pow(prob.doubleValue() - mean, 2)).sum() / probByTag.size());
+
+        //System.out.printf("Mean: %f, st.dev.: %f\n", mean, stDev);
+
+        // Check for a 4-sigma certainty
+        return probByTag.entrySet().stream()
+                .filter(entry -> entry.getValue().doubleValue() > (mean + stDev))
+                .sorted((e1, e2) -> e1.getValue().compareTo(e2.getValue()))
+                .map(Map.Entry::getKey).collect(Collectors.toList());
     }
 }

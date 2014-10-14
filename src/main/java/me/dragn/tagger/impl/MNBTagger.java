@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Implementation of Multinomial Naive Bayes.
+ * Weight-Normalized Multinomial Naive Bayes.
  * <p>
  * Based on the article by Rennie et al. [2003]: http://people.csail.mit.edu/jrennie/papers/icml03-nb.pdf
  * User: dsabelnikov

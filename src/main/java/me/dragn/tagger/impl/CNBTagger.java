@@ -14,10 +14,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
- * Complement Naive Bayes implementation.
+ * Weight-Normalized Complement Naive Bayes implementation.
  * Keyword weights represent the probability of a given word to be not in document of given class.
  * Thus the subtraction in the classification rule instead of addition.
  * <p>
+ * Based on the article by Rennie et al. [2003]: http://people.csail.mit.edu/jrennie/papers/icml03-nb.pdf
  * User: dsabelnikov
  * Date: 8/25/14
  * Time: 5:48 PM
