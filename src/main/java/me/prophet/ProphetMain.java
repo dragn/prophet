@@ -2,9 +2,12 @@ package me.prophet;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
+import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
+import me.prophet.data.Catalogue;
 import me.prophet.prov.SiteDownloadDataProvider;
 import me.prophet.tag.TWCNBTagger;
+import me.prophet.tag.Tagger;
 import me.prophet.util.CatalogueFetcher;
 import me.prophet.util.YandexCatalogueFetcher;
 
@@ -39,8 +42,8 @@ public class ProphetMain {
         @Parameter(description = "URLs")
         private List<String> urls;
 
-        @Parameter(names = {"-kn", "--knowledge"}, description = "File, containing prophet's knowledge")
-        private String knowledgeFile = "./knowledge.txt";
+        @Parameter(names = {"-kn", "--knowledge"}, required = true, description = "File, containing prophet's knowledge")
+        private String knowledgeFile;
 
         @Parameter(names = {"-d", "--crawl-depth"}, description = "Site crawling depth. How deep to follow child pages.")
         private Integer crawlDepth = 2;
@@ -67,6 +70,33 @@ public class ProphetMain {
                 } else {
                     log("%s: could not determine...", url);
                 }
+            }
+        }
+    }
+
+    @Parameters(commandNames = "learn", commandDescription = "Gather the knowledge for catalogue")
+    private class CommandLearn implements Runnable {
+
+        @Parameter(names = {"-c", "--catalogue"}, required = true, description = "Catalogue file path.")
+        private String catalogueFile;
+
+        @Parameter(names = {"-kn", "--knowledge"}, required = true, description = "File, where to put learned knowledge")
+        private String knowledgeFile;
+
+        @Parameter(names = {"-d", "--crawl-depth"}, description = "Site crawling depth. How deep to follow child pages.")
+        private Integer crawlDepth = 1;
+
+        @Override
+        public void run() {
+            Tagger tagger = new TWCNBTagger(new SiteDownloadDataProvider(crawlDepth));
+            tagger.setVerbose(verbose);
+            try {
+                tagger.learn(Catalogue.fromFile(catalogueFile));
+                log("Saving knowledge to file: %s", knowledgeFile);
+                tagger.toFile(knowledgeFile);
+            } catch (IOException e) {
+                logError("IO Error: %s", e.getMessage());
+                if (verbose) e.printStackTrace();
             }
         }
     }
@@ -123,10 +153,18 @@ public class ProphetMain {
     private ProphetMain(String... args) {
         jc = new JCommander(this);
         jc.addCommand(new CommandRun());
+        jc.addCommand(new CommandLearn());
         jc.addCommand(new CommandFetchCatalogue());
         jc.addCommand(new CommandHelp());
 
-        jc.parse(args);
+        try {
+            jc.parse(args);
+        } catch (ParameterException e) {
+            log(e.getMessage());
+            log("");
+            jc.usage(jc.getParsedCommand());
+            return;
+        }
 
         if (jc.getParsedCommand() == null) {
             jc.usage();

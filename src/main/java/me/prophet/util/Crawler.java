@@ -7,6 +7,7 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
 import java.net.ConnectException;
+import java.net.NoRouteToHostException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
@@ -139,7 +140,7 @@ public class Crawler {
         } catch (UnsupportedMimeTypeException ex) {
             // ignore
             break;
-        } catch (UnknownHostException e) {
+        } catch (UnknownHostException | NoRouteToHostException e) {
             System.err.format("Unable to resolve host: %s, check that URL is valid.\n", url);
             break;
         } catch (Exception e) {

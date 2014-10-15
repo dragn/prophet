@@ -42,7 +42,7 @@ public class TWCNBTagger extends Tagger {
         catalogue.parallelForEach((tag, docs) -> {
             Collections.shuffle((List) docs);
             docs.stream().limit(SITE_LIMIT).forEach(docKey -> {
-                //System.out.println(docKey);
+                if (verbose) System.out.println(docKey);
                 Map<String, MutableDouble> currentDocCount = new HashMap<>();
                 bagOfWords(getDocument(docKey)).forEach((word, count) -> {
                     addToMapValueDouble(currentDocCount, word, count.intValue());

@@ -28,6 +28,12 @@ public abstract class Tagger {
 
     private DataProvider provider;
 
+    protected boolean verbose = false;
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
+    }
+
     public Tagger(DataProvider provider) {
         this.provider = provider;
     }
