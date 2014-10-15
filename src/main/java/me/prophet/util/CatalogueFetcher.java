@@ -15,7 +15,9 @@ import java.util.StringTokenizer;
 /**
  * Created by dsabe_000 on 8/14/2014.
  */
-public abstract class CatalogFetcher {
+public abstract class CatalogueFetcher {
+
+    private int maxPages = 20;
 
     /**
      * tag -> catalog URL map
@@ -44,6 +46,14 @@ public abstract class CatalogFetcher {
             )
         );
         return catalogue;
+    }
+
+    public void setMaxPages(int maxPages) {
+        this.maxPages = maxPages;
+    }
+
+    public int getMaxPages() {
+        return maxPages;
     }
 
     protected abstract List<String> fetchSites(String url);

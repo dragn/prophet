@@ -1,7 +1,7 @@
-package me.prophet;
+package me.prophet.util;
 
 import me.prophet.data.Catalogue;
-import me.prophet.util.CatalogFetcher;
+import me.prophet.util.CatalogueFetcher;
 import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * Created by dsabe_000 on 8/14/2014.
  */
-public class YandexCatalogueFetcher extends CatalogFetcher {
+public class YandexCatalogueFetcher extends CatalogueFetcher {
 
     @Override
     protected List<String> fetchSites(String baseUrl) {
@@ -25,7 +25,7 @@ public class YandexCatalogueFetcher extends CatalogFetcher {
         String url = baseUrl;
         System.out.println("Parsing " + baseUrl);
         try {
-            while (page < 500) {
+            while (page < getMaxPages()) {
                 System.out.println("Page " + (page + 1) + ": " + url);
                 Document doc;
                 try {
@@ -54,7 +54,7 @@ public class YandexCatalogueFetcher extends CatalogFetcher {
     }
 
     public static void main(String[] args) throws IOException {
-        CatalogFetcher cf = new YandexCatalogueFetcher();
+        CatalogueFetcher cf = new YandexCatalogueFetcher();
         cf.readFile("conf/yaca.catalog");
         Catalogue cat = cf.fetch();
         cat.toFile("./catalogue.out");

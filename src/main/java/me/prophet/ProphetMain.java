@@ -5,6 +5,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import me.prophet.prov.SiteDownloadDataProvider;
 import me.prophet.tag.TWCNBTagger;
+import me.prophet.util.CatalogueFetcher;
+import me.prophet.util.YandexCatalogueFetcher;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +35,7 @@ public class ProphetMain {
      */
     @Parameters(commandNames = "run", commandDescription = "Run detection for specified URLs")
     private class CommandRun implements Runnable {
+
         @Parameter(description = "URLs")
         private List<String> urls;
 
@@ -68,6 +71,43 @@ public class ProphetMain {
         }
     }
 
+    @Parameters(commandNames = "fetch-catalogue", commandDescription = "Extra utility to build websites catalogue by parsing remote catalogue site.")
+    private class CommandFetchCatalogue implements Runnable {
+
+        @Parameter(names = {"-t", "--type"}, description = "Remote catalogue type. Supported: 'yandex' (default).")
+        private String type = "yandex";
+
+        @Parameter(names = {"-l", "--links"}, required = true, description = "File, containing definition of tags and their appropriate catalogue section URLs.")
+        private String linksFile;
+
+        @Parameter(names = {"-c", "--catalogue"}, required = true, description = "Where to store parsed catalogue.")
+        private String catalogueFile;
+
+        @Parameter(names = {"-p", "--pages"}, description = "Maximum number of pages to parse.")
+        private Integer maxPages = 20;
+
+        @Override
+        public void run() {
+            CatalogueFetcher cf;
+            switch (type) {
+            case "yandex":
+                cf = new YandexCatalogueFetcher();
+                break;
+            default:
+                logError("Unsupported type: %s", type);
+                return;
+            }
+            cf.setMaxPages(maxPages);
+            try {
+                cf.readFile(linksFile);
+                cf.fetch().toFile(catalogueFile);
+            } catch (IOException e) {
+                logError("IO Error: %s", e.getMessage());
+                if (verbose) e.printStackTrace();
+            }
+        }
+    }
+
     private void log(String format, Object... args) {
         System.out.format(format + "\n", args);
     }
@@ -81,12 +121,10 @@ public class ProphetMain {
     }
 
     private ProphetMain(String... args) {
-        CommandHelp help = new CommandHelp();
-        CommandRun run = new CommandRun();
-
         jc = new JCommander(this);
-        jc.addCommand(help);
-        jc.addCommand(run);
+        jc.addCommand(new CommandRun());
+        jc.addCommand(new CommandFetchCatalogue());
+        jc.addCommand(new CommandHelp());
 
         jc.parse(args);
 

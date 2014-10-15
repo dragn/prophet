@@ -5,7 +5,9 @@ compileJava.options.encoding = 'UTF-8'
 
 sourceCompatibility = 1.8
 version = '1.0'
-mainClassName = "me.prophet.ProphetMain";
+mainClassName = "me.prophet.ProphetMain"
+
+build.dependsOn installApp
 
 repositories {
     mavenCentral()
