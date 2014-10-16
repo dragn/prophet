@@ -27,9 +27,21 @@ public class ProphetMain {
 
     @Parameters(commandNames = "help", commandDescription = "Displays help for various commands")
     private class CommandHelp implements Runnable {
+        @Parameter()
+        private List<String> command;
+
         @Override
         public void run() {
-            jc.usage();
+            if (command != null && !command.isEmpty()) {
+                JCommander c = jc.getCommands().get(command.get(0));
+                if (c != null) {
+                    c.usage();
+                } else {
+                    log("No such command '" + command.get(0) + "'. Type 'prophet help' for a list of commands.");
+                }
+            } else {
+                jc.usage();
+            }
         }
     }
 
