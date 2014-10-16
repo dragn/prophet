@@ -3,15 +3,21 @@ prophet
 
 'prophet' is a set of tools for web sites classification
 
-Install
-=======
+Build
+=====
 
-Before installation you should have: Gradle 2.0+, Java 8+.
+You should have: Gradle 2.0+, Java 8+.
+
+```Shell
+$ gradle install -Dwhere=/path/to/dir
+```
+
+The binary will be placed in `/path/to/dir/bin`
 
 Command line interface
 ======================
 
-'prophet' include command line interface:
+'prophet' includes command line interface:
 
 ```Shell
 $ prophet help
@@ -52,11 +58,10 @@ Usage: prophet [options] [command] [command options]
           -p, --pages
              Maximum number of pages to parse.
              Default: 20
-          -t, --type
-             Remote catalogue type. Supported: 'yandex' (default).
-             Default: yandex
+        * -t, --type
+             Remote catalogue type. Supported: 'yandex', 'alexa'.
 
-    benchmark      
+    benchmark      Run prediction quality evaluation against provided data
       Usage: benchmark [options]
         Options:
         * -c, --catalogue
@@ -68,5 +73,5 @@ Usage: prophet [options] [command] [command options]
              File, containing prophet's knowledge
 
     help      Displays help for various commands
-      Usage: help [options] 
+      Usage: help [options]
 ```
