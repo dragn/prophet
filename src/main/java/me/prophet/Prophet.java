@@ -19,13 +19,16 @@ import java.util.List;
 /**
  * Created by dsabe_000 on 8/14/2014.
  */
-public class ProphetMain {
+public class Prophet {
 
     private final JCommander jc;
 
     @Parameter(names = {"-v", "--verbose"})
     private boolean verbose;
 
+    /**
+     * 'help' command
+     */
     @Parameters(commandNames = "help", commandDescription = "Displays help for various commands")
     private class CommandHelp implements Runnable {
         @Parameter()
@@ -92,6 +95,9 @@ public class ProphetMain {
         }
     }
 
+    /**
+     * 'learn' command
+     */
     @Parameters(commandNames = "learn", commandDescription = "Gather the knowledge for catalogue")
     private class CommandLearn implements Runnable {
 
@@ -118,6 +124,9 @@ public class ProphetMain {
         }
     }
 
+    /**
+     * 'fetch-catalogue' command
+     */
     @Parameters(commandNames = "fetch-catalogue", commandDescription = "Extra utility to build websites catalogue by parsing remote catalogue site.")
     private class CommandFetchCatalogue implements Runnable {
 
@@ -157,7 +166,10 @@ public class ProphetMain {
         }
     }
 
-    @Parameters(commandNames = "benchmark")
+    /**
+     * 'benchmark' command
+     */
+    @Parameters(commandNames = "benchmark", commandDescription = "Run prediction quality evaluation against provided data")
     private class CommandBenchmark implements Runnable {
         @Parameter(names = {"-c", "--catalogue"}, required = true, description = "Where to store parsed catalogue.")
         private String catalogueFile;
@@ -213,8 +225,9 @@ public class ProphetMain {
         if (verbose) log(format, args);
     }
 
-    private ProphetMain(String... args) {
+    private Prophet(String... args) {
         jc = new JCommander(this);
+        jc.setProgramName(getClass().getSimpleName().toLowerCase());
         jc.addCommand(new CommandRun());
         jc.addCommand(new CommandLearn());
         jc.addCommand(new CommandFetchCatalogue());
@@ -244,6 +257,6 @@ public class ProphetMain {
     }
 
     public static void main(String... args) throws IOException {
-        new ProphetMain(args);
+        new Prophet(args);
     }
 }

@@ -5,7 +5,7 @@ compileJava.options.encoding = 'UTF-8'
 
 sourceCompatibility = 1.8
 version = '1.0'
-mainClassName = "me.prophet.ProphetMain"
+mainClassName = "me.prophet.Prophet"
 
 if (System.getProperty('where') != null) {
   installApp.destinationDir = file(System.getProperty('where'))
