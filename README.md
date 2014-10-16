@@ -20,6 +20,7 @@ Command line interface
 'prophet' includes command line interface:
 
 ```Shell
+$ prophet help
 Usage: prophet [options] [command] [command options]
   Options:
     -v, --verbose
@@ -60,7 +61,7 @@ Usage: prophet [options] [command] [command options]
         * -t, --type
              Remote catalogue type. Supported: 'yandex', 'alexa'.
 
-    benchmark      
+    benchmark      Run prediction quality evaluation against provided data
       Usage: benchmark [options]
         Options:
         * -c, --catalogue
@@ -72,5 +73,5 @@ Usage: prophet [options] [command] [command options]
              File, containing prophet's knowledge
 
     help      Displays help for various commands
-      Usage: help [options] 
+      Usage: help [options]
 ```
