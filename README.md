@@ -3,8 +3,8 @@ prophet
 
 'prophet' is a set of tools for web sites classification
 
-Installation
-============
+Install
+=======
 
 Before installation you should have: Gradle 2.0+, Java 8+.
 
