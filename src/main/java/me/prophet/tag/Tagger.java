@@ -49,7 +49,7 @@ public abstract class Tagger {
     /**
      * Read already learned keywords from file.
      */
-    public void fromFile(String file) {
+    public void fromFile(String file) throws IOException {
         keywords = Keywords.fromFile(file);
     }
 

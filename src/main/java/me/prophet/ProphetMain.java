@@ -72,7 +72,12 @@ public class ProphetMain {
             TWCNBTagger tagger = new TWCNBTagger(new SiteDownloadDataProvider(crawlDepth));
 
             logVerbose("Loading knowledge...");
-            tagger.fromFile(knowledgeFile);
+            try {
+                tagger.fromFile(knowledgeFile);
+            } catch (IOException e) {
+                logError("error reading knowledge file", e);
+                return;
+            }
             logVerbose("Loaded %d tags", tagger.getKeywords().tags().size());
 
             for (String url : urls) {
@@ -107,8 +112,7 @@ public class ProphetMain {
                 log("Saving knowledge to file: %s", knowledgeFile);
                 tagger.toFile(knowledgeFile);
             } catch (IOException e) {
-                logError("IO Error: %s", e.getMessage());
-                if (verbose) e.printStackTrace();
+                logError("IO Error", e);
             }
         }
     }
@@ -132,20 +136,58 @@ public class ProphetMain {
         public void run() {
             CatalogueFetcher cf;
             switch (type) {
-            case "yandex":
-                cf = new YandexCatalogueFetcher();
-                break;
-            default:
-                logError("Unsupported type: %s", type);
-                return;
+                case "yandex":
+                    cf = new YandexCatalogueFetcher();
+                    break;
+                default:
+                    logError("Unsupported type: %s", type);
+                    return;
             }
             cf.setMaxPages(maxPages);
             try {
                 cf.readFile(linksFile);
                 cf.fetch().toFile(catalogueFile);
             } catch (IOException e) {
-                logError("IO Error: %s", e.getMessage());
-                if (verbose) e.printStackTrace();
+                logError("IO Error", e);
+            }
+        }
+    }
+
+    @Parameters(commandNames = "benchmark")
+    private class CommandBenchmark implements Runnable {
+        @Parameter(names = {"-c", "--catalogue"}, required = true, description = "Where to store parsed catalogue.")
+        private String catalogueFile;
+
+        @Parameter(names = {"-kn", "--knowledge"}, required = true, description = "File, containing prophet's knowledge")
+        private String knowledgeFile;
+
+        @Parameter(names = {"-d", "--crawl-depth"}, description = "Site crawling depth. How deep to follow child pages.")
+        private Integer crawlDepth = 2;
+
+        @Override
+        public void run() {
+            logVerbose("Checking knowledge file %s for existence...", knowledgeFile);
+
+            if (!new File(knowledgeFile).exists()) {
+                logError("Knowledge file %s not found (check the -kn option)", knowledgeFile);
+                return;
+            }
+
+            TWCNBTagger tagger = new TWCNBTagger(new SiteDownloadDataProvider(crawlDepth));
+
+            logVerbose("Loading knowledge...");
+            try {
+                tagger.fromFile(knowledgeFile);
+            } catch (IOException e) {
+                logError("error reading knowledge file", e);
+                return;
+            }
+            logVerbose("Loaded %d tags", tagger.getKeywords().tags().size());
+
+            try {
+                tagger.test(Catalogue.fromFile(catalogueFile));
+            } catch (IOException e) {
+                logError("error reading catalogue file", e);
             }
         }
     }
@@ -158,6 +200,11 @@ public class ProphetMain {
         System.err.format("ERROR: " + format + "\n", args);
     }
 
+    private void logError(String format, Throwable e) {
+        logError(format);
+        if (verbose) e.printStackTrace();
+    }
+
     private void logVerbose(String format, Object... args) {
         if (verbose) log(format, args);
     }
@@ -167,6 +214,7 @@ public class ProphetMain {
         jc.addCommand(new CommandRun());
         jc.addCommand(new CommandLearn());
         jc.addCommand(new CommandFetchCatalogue());
+        jc.addCommand(new CommandBenchmark());
         jc.addCommand(new CommandHelp());
 
         try {

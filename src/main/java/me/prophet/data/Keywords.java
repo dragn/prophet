@@ -16,7 +16,7 @@ import java.util.stream.Stream;
  * Date: 8/21/14
  * Time: 5:26 PM
  */
-public class Keywords {
+public class Keywords implements Serializable {
 
     /**
      * tag: word: keyword
@@ -49,33 +49,16 @@ public class Keywords {
         map.forEach(cons);
     }
 
-    public static Keywords fromFile(String file) {
-        Keywords keywords = new Keywords();
-        try (BufferedReader read = Files.newBufferedReader(Paths.get(file))) {
-            String line;
-            Map<String, Keyword> words = new HashMap<>();
-            String tag = null;
-            while ((line = read.readLine()) != null) {
-                if (line.startsWith(" ")) {
-                    String[] tokens = line.split(" ");
-                    words.put(tokens[1], new Keyword(tokens[1], Double.longBitsToDouble(
-                            Long.parseLong(tokens[2]))));
-                } else {
-                    if (!words.isEmpty() && tag != null) {
-                        keywords.map.put(tag, words);
-                        words = new HashMap<>();
-                    }
-                    tag = line.split(":")[0];
-                }
+    public static Keywords fromFile(String path) throws IOException {
+        try (ObjectInputStream writer = new ObjectInputStream(Files.newInputStream(Paths.get(path)))) {
+            try {
+                return (Keywords) writer.readObject();
+            } catch (ClassNotFoundException | ClassCastException e) {
+                System.err.println("Error while reading knowledge file");
+                e.printStackTrace();
             }
-            if (!words.isEmpty() && tag != null) {
-                keywords.map.put(tag, words);
-            }
-            //System.out.println(keywords.map.size() + " tags.");
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-        return keywords;
+        return null;
     }
 
     public void add(String tag, Keyword keyword) {
@@ -83,12 +66,8 @@ public class Keywords {
     }
 
     public void toFile(String path) throws IOException {
-        try (PrintWriter writer = new PrintWriter(Files.newBufferedWriter(Paths.get(path)))) {
-            forEach((tag, words) -> {
-                writer.println(tag);
-                words.forEach((word, keyword) -> writer.printf(" %s %d\n", word,
-                        Double.doubleToLongBits(keyword.weight())));
-            });
+        try (ObjectOutputStream writer = new ObjectOutputStream(Files.newOutputStream(Paths.get(path)))) {
+            writer.writeObject(this);
         }
     }
 }
