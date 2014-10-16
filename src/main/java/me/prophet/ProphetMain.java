@@ -8,6 +8,7 @@ import me.prophet.data.Catalogue;
 import me.prophet.prov.SiteDownloadDataProvider;
 import me.prophet.tag.TWCNBTagger;
 import me.prophet.tag.Tagger;
+import me.prophet.util.AlexaCatalogueFetcher;
 import me.prophet.util.CatalogueFetcher;
 import me.prophet.util.YandexCatalogueFetcher;
 
@@ -120,8 +121,8 @@ public class ProphetMain {
     @Parameters(commandNames = "fetch-catalogue", commandDescription = "Extra utility to build websites catalogue by parsing remote catalogue site.")
     private class CommandFetchCatalogue implements Runnable {
 
-        @Parameter(names = {"-t", "--type"}, description = "Remote catalogue type. Supported: 'yandex' (default).")
-        private String type = "yandex";
+        @Parameter(names = {"-t", "--type"}, required = true, description = "Remote catalogue type. Supported: 'yandex', 'alexa'.")
+        private String type;
 
         @Parameter(names = {"-l", "--links"}, required = true, description = "File, containing definition of tags and their appropriate catalogue section URLs.")
         private String linksFile;
@@ -138,6 +139,9 @@ public class ProphetMain {
             switch (type) {
                 case "yandex":
                     cf = new YandexCatalogueFetcher();
+                    break;
+                case "alexa":
+                    cf = new AlexaCatalogueFetcher();
                     break;
                 default:
                     logError("Unsupported type: %s", type);

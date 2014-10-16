@@ -1,17 +1,10 @@
 package me.prophet.util;
 
 import me.prophet.data.Catalogue;
-import me.prophet.util.CatalogueFetcher;
-import org.jsoup.HttpStatusException;
-import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.net.SocketTimeoutException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Collection;
 
 /**
  * Created by dsabe_000 on 8/14/2014.
@@ -19,38 +12,15 @@ import java.util.List;
 public class YandexCatalogueFetcher extends CatalogueFetcher {
 
     @Override
-    protected List<String> fetchSites(String baseUrl) {
-        List<String> result = new ArrayList<>();
-        int page = 0;
-        String url = baseUrl;
-        System.out.println("Parsing " + baseUrl);
-        try {
-            while (page < getMaxPages()) {
-                System.out.println("Page " + (page + 1) + ": " + url);
-                Document doc;
-                try {
-                    doc = Jsoup.connect(url).get();
-                } catch (SocketTimeoutException ex) {
-                    continue;
-                }
-                Elements links = doc.select("a.b-result__name");
-                if (links.isEmpty()) break;
-                for (Element element : links) {
-                    result.add(element.attr("href"));
-                }
-                if (baseUrl.contains("?")) {
-                    url = baseUrl.replace("?", "/" + (++page) + ".html?");
-                } else {
-                    url = baseUrl + (++page) + ".html";
-                }
-            }
-        } catch (HttpStatusException ex) {
-            // ...
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println("Parsed " + page + " pages");
-        return result;
+    protected String pageUrl(String baseUrl, int page) {
+        return baseUrl.contains("?") ?
+                baseUrl.replace("?", "/" + page + ".html?") :
+                baseUrl + page + ".html";
+    }
+
+    @Override
+    protected void addLinks(Collection<String> result, Document doc) {
+        doc.select("a.b-result__name").stream().map(element -> element.attr("href")).forEach(result::add);
     }
 
     public static void main(String[] args) throws IOException {

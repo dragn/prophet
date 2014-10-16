@@ -2,15 +2,16 @@ package me.prophet.util;
 
 import me.prophet.data.Catalogue;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jsoup.HttpStatusException;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * Created by dsabe_000 on 8/14/2014.
@@ -56,5 +57,32 @@ public abstract class CatalogueFetcher {
         return maxPages;
     }
 
-    protected abstract List<String> fetchSites(String url);
+    protected List<String> fetchSites(String baseUrl) {
+        List<String> result = new ArrayList<>();
+        int page = 0;
+        System.out.println("Parsing " + baseUrl);
+        try {
+            while (page < getMaxPages()) {
+                String url = pageUrl(baseUrl, page);
+                System.out.println("Page " + (page + 1) + ": " + url);
+                Document doc;
+                try {
+                    doc = Jsoup.connect(url).get();
+                } catch (SocketTimeoutException ex) {
+                    continue;
+                }
+                addLinks(result, doc);
+                page++;
+            }
+        } catch (HttpStatusException ex) {
+            // ...
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println("Parsed " + page + " pages");
+        return result;
+    }
+
+    protected abstract String pageUrl(String baseUrl, int page);
+    protected abstract void addLinks(Collection<String> result, Document doc);
 }
