@@ -12,6 +12,8 @@ You should have: Gradle 2.0+, Java 8+.
 $ gradle install -Dwhere=/path/to/dir
 ```
 
+The binary will be placed in `/path/to/dir/bin`
+
 Command line interface
 ======================
 
