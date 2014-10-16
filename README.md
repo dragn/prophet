@@ -17,10 +17,9 @@ The binary will be placed in `/path/to/dir/bin`
 Command line interface
 ======================
 
-'prophet' include command line interface:
+'prophet' includes command line interface:
 
 ```Shell
-$ prophet help
 Usage: prophet [options] [command] [command options]
   Options:
     -v, --verbose
@@ -58,9 +57,8 @@ Usage: prophet [options] [command] [command options]
           -p, --pages
              Maximum number of pages to parse.
              Default: 20
-          -t, --type
-             Remote catalogue type. Supported: 'yandex' (default).
-             Default: yandex
+        * -t, --type
+             Remote catalogue type. Supported: 'yandex', 'alexa'.
 
     benchmark      
       Usage: benchmark [options]
