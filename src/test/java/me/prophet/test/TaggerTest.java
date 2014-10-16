@@ -1,16 +1,15 @@
 package me.prophet.test;
 
-import me.prophet.tag.Tagger;
 import me.prophet.data.Catalogue;
 import me.prophet.data.Keyword;
 import me.prophet.data.Keywords;
+import me.prophet.prov.DataProvider;
 import me.prophet.tag.CNBTagger;
 import me.prophet.tag.MNBTagger;
 import me.prophet.tag.TWCNBTagger;
-import me.prophet.prov.DataProvider;
+import me.prophet.tag.Tagger;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Ignore;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -138,7 +137,6 @@ public class TaggerTest {
     }
 
     @Test
-    @Ignore
     public void testTWCNBTagger() throws IOException {
         Catalogue c = new Catalogue();
 
@@ -158,24 +156,24 @@ public class TaggerTest {
 
         Keywords kws = tagger.getKeywords();
 
-        assertEquals(-0.1470, kws.byTag("AAA").get("aaaa").weight(), 0.0001);
-        assertEquals(-0.1786, kws.byTag("AAA").get("bbbb").weight(), 0.0001);
-        assertEquals(-0.1699, kws.byTag("AAA").get("cccc").weight(), 0.0001);
-        assertEquals(-0.1574, kws.byTag("AAA").get("dddd").weight(), 0.0001);
-        assertEquals(-0.1768, kws.byTag("AAA").get("ssss").weight(), 0.0001);
-        assertEquals(-0.1703, kws.byTag("AAA").get("vvvv").weight(), 0.0001);
+        assertEquals(-0.1446, kws.byTag("AAA").get("aaaa").weight(), 0.0001);
+        assertEquals(-0.1800, kws.byTag("AAA").get("bbbb").weight(), 0.0001);
+        assertEquals(-0.1707, kws.byTag("AAA").get("cccc").weight(), 0.0001);
+        assertEquals(-0.1525, kws.byTag("AAA").get("dddd").weight(), 0.0001);
+        assertEquals(-0.1794, kws.byTag("AAA").get("ssss").weight(), 0.0001);
+        assertEquals(-0.1728, kws.byTag("AAA").get("vvvv").weight(), 0.0001);
 
-        assertEquals(-0.1667, kws.byTag("BBB").get("aaaa").weight(), 0.0001);
-        assertEquals(-0.1480, kws.byTag("BBB").get("bbbb").weight(), 0.0001);
-        assertEquals(-0.1600, kws.byTag("BBB").get("cccc").weight(), 0.0001);
-        assertEquals(-0.1781, kws.byTag("BBB").get("dddd").weight(), 0.0001);
-        assertEquals(-0.1769, kws.byTag("BBB").get("ssss").weight(), 0.0001);
-        assertEquals(-0.1704, kws.byTag("BBB").get("vvvv").weight(), 0.0001);
+        assertEquals(-0.1625, kws.byTag("BBB").get("aaaa").weight(), 0.0001);
+        assertEquals(-0.1500, kws.byTag("BBB").get("bbbb").weight(), 0.0001);
+        assertEquals(-0.1603, kws.byTag("BBB").get("cccc").weight(), 0.0001);
+        assertEquals(-0.1740, kws.byTag("BBB").get("dddd").weight(), 0.0001);
+        assertEquals(-0.1799, kws.byTag("BBB").get("ssss").weight(), 0.0001);
+        assertEquals(-0.1733, kws.byTag("BBB").get("vvvv").weight(), 0.0001);
 
-        assertEquals(-0.1219, kws.byTag("CCC").get("aaaa").weight(), 0.0001);
-        assertEquals(-0.1347, kws.byTag("CCC").get("bbbb").weight(), 0.0001);
-        assertEquals(-0.1539, kws.byTag("CCC").get("cccc").weight(), 0.0001);
-        assertEquals(-0.1764, kws.byTag("CCC").get("dddd").weight(), 0.0001);
+        assertEquals(-0.1208, kws.byTag("CCC").get("aaaa").weight(), 0.0001);
+        assertEquals(-0.1366, kws.byTag("CCC").get("bbbb").weight(), 0.0001);
+        assertEquals(-0.1547, kws.byTag("CCC").get("cccc").weight(), 0.0001);
+        assertEquals(-0.1745, kws.byTag("CCC").get("dddd").weight(), 0.0001);
         assertEquals(-0.2066, kws.byTag("CCC").get("ssss").weight(), 0.0001);
         assertEquals(-0.2066, kws.byTag("CCC").get("vvvv").weight(), 0.0001);
 
