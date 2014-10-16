@@ -7,6 +7,10 @@ sourceCompatibility = 1.8
 version = '1.0'
 mainClassName = "me.prophet.ProphetMain"
 
+if (System.getProperty('where') != null) {
+  installApp.destinationDir = file(System.getProperty('where'))
+}
+
 build.dependsOn installApp
 
 repositories {
