@@ -1,8 +1,6 @@
 package me.prophet.data;
 
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -49,25 +47,8 @@ public class Keywords implements Serializable {
         map.forEach(cons);
     }
 
-    public static Keywords fromFile(String path) throws IOException {
-        try (ObjectInputStream writer = new ObjectInputStream(Files.newInputStream(Paths.get(path)))) {
-            try {
-                return (Keywords) writer.readObject();
-            } catch (ClassNotFoundException | ClassCastException e) {
-                System.err.println("Error while reading knowledge file");
-                e.printStackTrace();
-            }
-        }
-        return null;
-    }
-
     public void add(String tag, Keyword keyword) {
         byTag(tag).put(keyword.word(), keyword);
     }
 
-    public void toFile(String path) throws IOException {
-        try (ObjectOutputStream writer = new ObjectOutputStream(Files.newOutputStream(Paths.get(path)))) {
-            writer.writeObject(this);
-        }
-    }
 }

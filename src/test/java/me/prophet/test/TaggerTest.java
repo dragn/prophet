@@ -56,7 +56,8 @@ public class TaggerTest {
         c.add("BBB", Arrays.asList("333", "444"));
         c.add("CCC", Arrays.asList("555", "666", "777"));
 
-        Tagger tagger = new MNBTagger(testDataProvider);
+        Tagger tagger = new MNBTagger();
+        tagger.setProvider(testDataProvider);
 
         tagger.learn(c);
 
@@ -100,7 +101,8 @@ public class TaggerTest {
         c.add("BBB", Arrays.asList("333", "444"));
         c.add("CCC", Arrays.asList("555", "666", "777"));
 
-        Tagger tagger = new CNBTagger(testDataProvider);
+        Tagger tagger = new CNBTagger();
+        tagger.setProvider(testDataProvider);
 
         tagger.learn(c);
 
@@ -144,7 +146,8 @@ public class TaggerTest {
         c.add("BBB", Arrays.asList("333", "444"));
         c.add("CCC", Arrays.asList("555", "666", "777"));
 
-        Tagger tagger = new TWCNBTagger(testDataProvider);
+        Tagger tagger = new TWCNBTagger();
+        tagger.setProvider(testDataProvider);
 
         tagger.learn(c);
 

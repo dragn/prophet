@@ -3,7 +3,6 @@ package me.prophet.tag;
 import me.prophet.data.Catalogue;
 import me.prophet.data.Keyword;
 import me.prophet.data.Keywords;
-import me.prophet.prov.DataProvider;
 import org.apache.commons.lang3.mutable.MutableDouble;
 
 import java.io.IOException;
@@ -22,10 +21,6 @@ import java.util.stream.Collectors;
 public class TWCNBTagger extends Tagger {
 
     private final int SITE_LIMIT = 40;
-
-    public TWCNBTagger(DataProvider provider) {
-        super(provider);
-    }
 
     @Override
     public void learn(Catalogue catalogue) throws IOException {

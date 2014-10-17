@@ -3,8 +3,8 @@ package me.prophet.tag;
 import me.prophet.data.Catalogue;
 import me.prophet.data.Keyword;
 import me.prophet.data.Keywords;
+import me.prophet.data.Knowledge;
 import me.prophet.prov.DataProvider;
-import me.prophet.util.KeywordsFetcher;
 import me.prophet.util.TaggerTest;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.mutable.MutableDouble;
@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Naive Bayes Classifier
@@ -28,14 +29,12 @@ public abstract class Tagger {
 
     private DataProvider provider;
 
+    public static Pattern wordPattern = Pattern.compile("[a-zA-Zа-яА-Я]{4,}");
+
     protected boolean verbose = false;
 
     public void setVerbose(boolean verbose) {
         this.verbose = verbose;
-    }
-
-    public Tagger(DataProvider provider) {
-        this.provider = provider;
     }
 
     public Keywords getKeywords() {
@@ -49,8 +48,19 @@ public abstract class Tagger {
     /**
      * Read already learned keywords from file.
      */
-    public void fromFile(String file) throws IOException {
-        keywords = Keywords.fromFile(file);
+    public static Tagger fromFile(String file) throws IOException {
+        Knowledge knowledge = Knowledge.fromFile(file);
+        if (knowledge != null) {
+            try {
+                Class<?> cl = Tagger.class.getClassLoader().loadClass(knowledge.getTaggerClassName());
+                Tagger tagger = (Tagger) cl.newInstance();
+                tagger.keywords = knowledge.getKeywords();
+                return tagger;
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | ClassCastException e) {
+                System.err.println("Unable to find tagger class specified in knowledge");
+            }
+        }
+        return null;
     }
 
     /**
@@ -62,6 +72,9 @@ public abstract class Tagger {
      * Retrieves a document from DataProvider
      */
     public String getDocument(String key) {
+        if (provider == null) {
+            throw new IllegalStateException("No data provider specified");
+        }
         return provider.getDocument(key);
     }
 
@@ -69,7 +82,9 @@ public abstract class Tagger {
      * Store learned keywords to file.
      */
     public void toFile(String file) throws IOException {
-        if (keywords != null) keywords.toFile(file);
+        if (keywords != null) {
+            new Knowledge(getClass().getCanonicalName(), keywords).toFile(file);
+        }
     }
 
     /**
@@ -77,6 +92,9 @@ public abstract class Tagger {
      * Tag each site in input, build own Catalogue, measure catalogue relevancy (e.g. F1 score).
      */
     public void test(Catalogue input) {
+        if (provider == null) {
+            throw new IllegalStateException("No data provider specified");
+        }
         Catalogue myCatalogue = new Catalogue();
         input.forEach((tag, docs) -> docs.parallelStream().forEach(doc -> {
             String text = provider.getDocument(doc);
@@ -100,7 +118,7 @@ public abstract class Tagger {
     }
 
     protected void forEachWord(String text, Consumer<String> cons) {
-        Matcher matcher = KeywordsFetcher.wordPattern.matcher(text);
+        Matcher matcher = wordPattern.matcher(text);
         while (matcher.find()) {
             cons.accept(matcher.group().toLowerCase());
         }
@@ -160,5 +178,9 @@ public abstract class Tagger {
 
     public List<String> multitagText(String text) {
         return Arrays.asList(tagText(text));
+    }
+
+    public void setProvider(DataProvider provider) {
+        this.provider = provider;
     }
 }

@@ -6,9 +6,7 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import me.prophet.data.Catalogue;
 import me.prophet.prov.SiteDownloadDataProvider;
-import me.prophet.tag.TWCNBTagger;
 import me.prophet.tag.Tagger;
-import me.prophet.util.AlexaCatalogueFetcher;
 import me.prophet.util.CatalogueFetcher;
 import me.prophet.util.YandexCatalogueFetcher;
 
@@ -73,24 +71,22 @@ public class Prophet {
                 return;
             }
 
-            TWCNBTagger tagger = new TWCNBTagger(new SiteDownloadDataProvider(crawlDepth));
-
             logVerbose("Loading knowledge...");
             try {
-                tagger.fromFile(knowledgeFile);
+                Tagger tagger = Tagger.fromFile(knowledgeFile);
+
+                logVerbose("Loaded %d tags", tagger.getKeywords().tags().size());
+
+                for (String url : urls) {
+                    List<String> tags = tagger.multitagText(tagger.getDocument(url));
+                    if (tags != null && !tags.isEmpty()) {
+                        log("%s: %s", url, tags);
+                    } else {
+                        log("%s: could not determine...", url);
+                    }
+                }
             } catch (IOException e) {
                 logError("error reading knowledge file", e);
-                return;
-            }
-            logVerbose("Loaded %d tags", tagger.getKeywords().tags().size());
-
-            for (String url : urls) {
-                List<String> tags = tagger.multitagText(tagger.getDocument(url));
-                if (tags != null && !tags.isEmpty()) {
-                    log("%s: %s", url, tags);
-                } else {
-                    log("%s: could not determine...", url);
-                }
             }
         }
     }
@@ -110,9 +106,14 @@ public class Prophet {
         @Parameter(names = {"-d", "--crawl-depth"}, description = "Site crawling depth. How deep to follow child pages.")
         private Integer crawlDepth = 1;
 
+        @Parameter(names = {"-t", "--type"}, description = "Classifier type. Supported: 'MNB', 'CNB', 'TWCNB' (default)")
+        private String type = "TWCNB";
+
         @Override
         public void run() {
-            Tagger tagger = new TWCNBTagger(new SiteDownloadDataProvider(crawlDepth));
+            Tagger tagger = taggerByName(type);
+            if (tagger == null) return;
+            tagger.setProvider(new SiteDownloadDataProvider(crawlDepth));
             tagger.setVerbose(verbose);
             try {
                 tagger.learn(Catalogue.fromFile(catalogueFile));
@@ -130,7 +131,7 @@ public class Prophet {
     @Parameters(commandNames = "fetch-catalogue", commandDescription = "Extra utility to build websites catalogue by parsing remote catalogue site.")
     private class CommandFetchCatalogue implements Runnable {
 
-        @Parameter(names = {"-t", "--type"}, required = true, description = "Remote catalogue type. Supported: 'yandex', 'alexa'.")
+        @Parameter(names = {"-t", "--type"}, required = true, description = "Remote catalogue type. Supported: .")
         private String type;
 
         @Parameter(names = {"-l", "--links"}, required = true, description = "File, containing definition of tags and their appropriate catalogue section URLs.")
@@ -148,9 +149,6 @@ public class Prophet {
             switch (type) {
                 case "yandex":
                     cf = new YandexCatalogueFetcher();
-                    break;
-                case "alexa":
-                    cf = new AlexaCatalogueFetcher();
                     break;
                 default:
                     logError("Unsupported type: %s", type);
@@ -189,23 +187,32 @@ public class Prophet {
                 return;
             }
 
-            TWCNBTagger tagger = new TWCNBTagger(new SiteDownloadDataProvider(crawlDepth));
-
             logVerbose("Loading knowledge...");
             try {
-                tagger.fromFile(knowledgeFile);
+                Tagger tagger = Tagger.fromFile(knowledgeFile);
+                tagger.setProvider(new SiteDownloadDataProvider(crawlDepth));
+                logVerbose("Loaded %d tags", tagger.getKeywords().tags().size());
+
+                try {
+                    tagger.test(Catalogue.fromFile(catalogueFile));
+                } catch (IOException e) {
+                    logError("error reading catalogue file", e);
+                }
             } catch (IOException e) {
                 logError("error reading knowledge file", e);
-                return;
-            }
-            logVerbose("Loaded %d tags", tagger.getKeywords().tags().size());
-
-            try {
-                tagger.test(Catalogue.fromFile(catalogueFile));
-            } catch (IOException e) {
-                logError("error reading catalogue file", e);
             }
         }
+    }
+
+    private Tagger taggerByName(String name) {
+        try {
+            Class<?> cl = getClass().getClassLoader().loadClass(Tagger.class.getPackage().getName() + "." +
+                    name.toUpperCase() + "Tagger");
+            return (Tagger) cl.newInstance();
+        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+            logError("Error loading tagger class", e);
+        }
+        return null;
     }
 
     private void log(String format, Object... args) {

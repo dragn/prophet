@@ -3,7 +3,6 @@ package me.prophet.tag;
 import me.prophet.data.Catalogue;
 import me.prophet.data.Keyword;
 import me.prophet.data.Keywords;
-import me.prophet.prov.DataProvider;
 import org.apache.commons.lang3.mutable.MutableDouble;
 import org.apache.commons.lang3.mutable.MutableInt;
 
@@ -23,10 +22,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * Time: 5:34 PM
  */
 public class MNBTagger extends Tagger {
-
-    public MNBTagger(DataProvider provider) {
-        super(provider);
-    }
 
     @Override
     public void learn(Catalogue catalogue) throws IOException {

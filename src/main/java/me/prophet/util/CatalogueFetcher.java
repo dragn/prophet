@@ -2,7 +2,6 @@ package me.prophet.util;
 
 import me.prophet.data.Catalogue;
 import org.apache.commons.lang3.tuple.Pair;
-import org.jsoup.HttpStatusException;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
@@ -65,6 +64,7 @@ public abstract class CatalogueFetcher {
             while (page < getMaxPages()) {
                 String url = pageUrl(baseUrl, page);
                 System.out.println("Page " + (page + 1) + ": " + url);
+                page++;
                 Document doc;
                 try {
                     doc = Jsoup.connect(url).get();
@@ -72,10 +72,7 @@ public abstract class CatalogueFetcher {
                     continue;
                 }
                 addLinks(result, doc);
-                page++;
             }
-        } catch (HttpStatusException ex) {
-            // ...
         } catch (IOException e) {
             e.printStackTrace();
         }
