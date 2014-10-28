@@ -1,7 +1,10 @@
 prophet
 =======
 
-'prophet' is a set of tools for web sites classification
+`prophet` is a set of tools for web sites classification.
+
+Why you may need it? For building your own site classifier! You may categorize any sites with your custom categories. To achieve this you only need to provide enough data for learning.
+`prophet` also aims to provide the tools for building learning dataset. For now, there is only one method supported - parsing Yandex web sites catalogues sites. But you are free to implement your own (refer to `CatalogueFetcher` class).
 
 Build
 =====
