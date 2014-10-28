@@ -7,6 +7,10 @@ sourceCompatibility = 1.8
 version = '1.0'
 mainClassName = "me.prophet.Prophet"
 
+task wrapper(type: Wrapper) {
+  gradleVersion = '2.1'
+}
+
 if (System.getProperty('where') != null) {
   installApp.destinationDir = file(System.getProperty('where'))
 }
