@@ -6,10 +6,10 @@ prophet
 Build
 =====
 
-You should have: Gradle 2.0+, Java 8+.
+You should have: Java 8+.
 
 ```Shell
-$ gradle install -Dwhere=/path/to/dir
+$ ./gradlew install -Dwhere=/path/to/dir
 ```
 
 The binary will be placed in `/path/to/dir/bin`
