@@ -9,7 +9,8 @@ Why you may need it? For building your own site classifier! You may categorize a
 Disclaimer
 ==========
 
-I do not in any way support this software now. I do not guarantee that any of it works. Basically, WTFPL license is applied to this code: http://www.wtfpl.net/.
+I do not, in any way, support this software now. I do not guarantee that any of it works. Basically, WTFPL license is applied to this code: http://www.wtfpl.net/.
+
 This repository is open only because I need room for private repos. But if you have any questions or considerations about this code please feel free to contact me.
 
 Build
