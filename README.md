@@ -6,6 +6,12 @@ prophet
 Why you may need it? For building your own site classifier! You may categorize any sites with your custom categories. To achieve this you only need to provide enough data for learning.
 `prophet` also aims to provide the tools for building learning dataset. For now, there is only one method supported - parsing Yandex web sites catalogues sites. But you are free to implement your own (refer to `CatalogueFetcher` class).
 
+Disclaimer
+==========
+
+I do not in any way support this software now. I do not guarantee that any of it works. Basically, WTFPL license is applied to this code: http://www.wtfpl.net/.
+This repository is open only because I need room for private repos. But if you have any questions or considerations about this code please feel free to contact me.
+
 Build
 =====
 
